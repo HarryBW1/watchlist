@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Watchlist</title>
+
+  <!-- PWA / iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Watchlist" />
+  <meta name="theme-color" content="#0f0f14" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Icons & fonts -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="logo" aria-hidden="true"><i class="ti ti-player-play"></i></div>
+  <h1>Watchlist</h1>
+  <nav class="desktop-tabs" aria-label="Main navigation">
+    <button class="desktop-tab active" data-tab="search" onclick="switchTab('search')">
+      <i class="ti ti-search" aria-hidden="true"></i> Search
+    </button>
+    <button class="desktop-tab" data-tab="watchlist" onclick="switchTab('watchlist')">
+      <i class="ti ti-bookmark" aria-hidden="true"></i> My Watchlist
+      <span class="dt-badge" aria-label="items saved"></span>
+    </button>
+    <button class="desktop-tab" data-tab="youtube" onclick="switchTab('youtube')">
+      <i class="ti ti-brand-youtube" aria-hidden="true"></i> YouTube
+    </button>
+  </nav>
+</header>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- ── SEARCH TAB ──────────────────────────────────────────────────────── -->
+  <section id="tab-search" class="tab-panel active" aria-label="Search">
+
+    <!-- API key setup banner -->
+    <div class="api-banner" id="api-banner">
+      <i class="ti ti-key" aria-hidden="true"></i>
+      <div class="api-banner-body">
+        <h2>Connect to TMDB</h2>
+        <p>
+          This app searches The Movie Database for real posters, descriptions, and streaming info.
+          It's free —
+          <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">
+            get your API key here
+          </a>
+          (sign up → Settings → API → Request a key → Developer).
+        </p>
+        <div class="api-key-row">
+          <input type="password" id="api-key-input" placeholder="Paste your TMDB API key (v3 auth)" autocomplete="off" />
+          <button class="primary-btn" id="key-submit-btn" onclick="submitKey()">
+            <i class="ti ti-check"></i> Save key
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search input (hidden until key saved) -->
+    <div class="search-controls" id="search-controls" style="display:none">
+      <div class="search-wrap">
+        <i class="ti ti-search s-icon" aria-hidden="true"></i>
+        <input type="text" id="s-input" placeholder="Search films & series…"
+               oninput="onSearchInput()" autocomplete="off" autocorrect="off"
+               spellcheck="false" aria-label="Search" />
+        <i class="ti ti-loader spin spinner" id="search-spinner" aria-hidden="true"></i>
+      </div>
+      <select id="s-type" onchange="onSearchInput()" aria-label="Filter by type">
+        <option value="all">All types</option>
+        <option value="movie">Films</option>
+        <option value="tv">Series</option>
+      </select>
+    </div>
+
+    <!-- Hint / empty state -->
+    <div class="search-hint" id="search-hint" style="display:none">
+      <i class="ti ti-device-tv" aria-hidden="true"></i>
+      <p>Search any film or series.<br>Posters, descriptions and streaming providers load automatically.</p>
+      <div class="platform-pills" aria-hidden="true">
+        <span class="platform-chip"><span class="dot" style="background:#e50914"></span>Netflix</span>
+        <span class="platform-chip"><span class="dot" style="background:#3b82f6"></span>Disney+</span>
+        <span class="platform-chip"><span class="dot" style="background:#a78bfa"></span>HBO Max</span>
+        <span class="platform-chip"><span class="dot" style="background:#60a5fa"></span>Paramount+</span>
+        <span class="platform-chip"><span class="dot" style="background:#38bdf8"></span>Prime Video</span>
+      </div>
+    </div>
+
+    <div class="cards-grid" id="search-grid" role="list" aria-label="Search results"></div>
+  </section>
+
+  <!-- ── WATCHLIST TAB ───────────────────────────────────────────────────── -->
+  <section id="tab-watchlist" class="tab-panel" aria-label="My Watchlist">
+    <div class="stats-row" id="wl-stats" aria-label="Statistics"></div>
+    <div class="wl-filters">
+      <select id="wl-st" onchange="renderWatchlist()" aria-label="Filter by status">
+        <option value="all">All statuses</option>
+        <option value="Want to watch">Want to watch</option>
+        <option value="Watching">Watching</option>
+        <option value="Finished">Finished</option>
+        <option value="Dropped">Dropped</option>
+      </select>
+      <select id="wl-pf" onchange="renderWatchlist()" aria-label="Filter by platform">
+        <option value="all">All platforms</option>
+        <option value="Netflix">Netflix</option>
+        <option value="Disney+">Disney+</option>
+        <option value="HBO Max">HBO Max</option>
+        <option value="Paramount+">Paramount+</option>
+        <option value="Prime Video">Prime Video</option>
+      </select>
+      <select id="wl-type" onchange="renderWatchlist()" aria-label="Filter by type">
+        <option value="all">Films & Series</option>
+        <option value="movie">Films only</option>
+        <option value="tv">Series only</option>
+      </select>
+    </div>
+    <div class="cards-grid" id="wl-grid" role="list" aria-label="Watchlist"></div>
+  </section>
+
+  <!-- ── YOUTUBE TAB ─────────────────────────────────────────────────────── -->
+  <section id="tab-youtube" class="tab-panel" aria-label="YouTube">
+    <div class="yt-add-card">
+      <h2><i class="ti ti-brand-youtube" aria-hidden="true"></i> Add a YouTube video</h2>
+      <div class="yt-inputs">
+        <input type="url" id="yt-url" placeholder="Paste YouTube URL…"
+               autocomplete="off" inputmode="url" aria-label="YouTube URL" />
+        <input type="text" id="yt-title" placeholder="Title (optional)"
+               autocomplete="off" aria-label="Video title" />
+        <button class="primary-btn" onclick="addYT()">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add video
+        </button>
+      </div>
+    </div>
+    <p class="yt-list-header" id="yt-list-header" style="display:none"></p>
+    <div id="yt-list" role="list" aria-label="YouTube videos"></div>
+  </section>
+
+</main>
+
+<!-- ── Bottom nav (mobile) ───────────────────────────────────────────────── -->
+<nav class="bottom-nav" aria-label="Navigation">
+  <button class="nav-btn active" data-tab="search" onclick="switchTab('search')" aria-label="Search">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    Search
+  </button>
+  <button class="nav-btn" data-tab="watchlist" onclick="switchTab('watchlist')" aria-label="My Watchlist">
+    <i class="ti ti-bookmark" aria-hidden="true"></i>
+    <span class="mob-badge" aria-hidden="true"></span>
+    Watchlist
+  </button>
+  <button class="nav-btn" data-tab="youtube" onclick="switchTab('youtube')" aria-label="YouTube">
+    <i class="ti ti-brand-youtube" aria-hidden="true"></i>
+    YouTube
+  </button>
+</nav>
+
+<!-- ── Detail modal ──────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true" aria-label="Show details">
+  <div class="modal" id="modal"></div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ── Scripts ───────────────────────────────────────────────────────────── -->
+<script src="js/tmdb.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
