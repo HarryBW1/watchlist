@@ -1,4 +1,4 @@
-# 📺 Watchlist
+# Watchlist
 
 A personal streaming watchlist PWA. Search any film or series via **The Movie Database (TMDB)** — real posters, descriptions, ratings, and streaming provider info load automatically. Save anything to your watchlist and track your progress. Add YouTube links too. Works offline and installs as a home screen app on iPhone and iPad.
 
