@@ -1,77 +1,73 @@
-# Watchlist
+# 📺 Watchlist
 
-A personal streaming watchlist PWA. Search any film or series via **The Movie Database (TMDB)** — real posters, descriptions, ratings, and streaming provider info load automatically. Save anything to your watchlist and track your progress. Add YouTube links too. Works offline and installs as a home screen app on iPhone and iPad.
+A personal streaming watchlist PWA with **cloud sync and login**. Search any film or series via TMDB, save to your watchlist, and access it from any device — iPhone, iPad, desktop — with everything synced instantly.
 
 ---
 
 ## Features
 
-- 🔍 Live search powered by TMDB — every film and series ever made
-- 🖼 Real posters, backdrops, descriptions, ratings & genres
-- 📡 Shows which streaming platform each title is on (Netflix, Disney+, HBO Max, Paramount+, Prime Video)
-- 🔖 Personal watchlist with status tracking (Want to watch / Watching / Finished / Dropped)
-- 📺 YouTube tab — paste links and track them
-- 💾 All data saved in your browser — no account needed
-- 📱 Installable on iPhone, iPad, and Android as a full-screen app
-- ✈️ Works offline after first load (TMDB searches require a connection)
+- 🔐 **Account login** — email/password, data synced across all your devices
+- 🔍 **Live TMDB search** — every film and series ever made
+- 🖼 **Posters, backdrops, descriptions, ratings, genres**
+- 📡 **Streaming providers** — see which platform each title is on
+- 🔖 **Watchlist** with status tracking (Want to watch / Watching / Finished / Dropped)
+- 📺 **YouTube tab** — save and track YouTube links
+- 📱 **Installs on iPhone/iPad** as a full-screen home screen app
+- ✈️ Works offline after first load
 
 ---
 
-## Setup — TMDB API Key (free, 2 minutes)
+## Setup (one-time, ~10 minutes)
 
-The app uses TMDB's free API to search shows and fetch posters.
-
-1. Go to [themoviedb.org](https://www.themoviedb.org) and create a free account
-2. Go to **Settings → API → Create → Developer**
-3. Fill in the form (use "Personal" for use case, any URL for the site field)
-4. Copy your **API Key (v3 auth)**
-5. Open the app, paste the key into the setup box, and hit **Save key**
-
-Your key is stored in your browser and never leaves your device.
+You need two free services: **Supabase** (auth + database) and **TMDB** (film data).
 
 ---
 
-## Deploy to GitHub Pages (free hosting)
+### Step 1 — Supabase (auth + database)
 
-### 1. Create a GitHub repository
+1. Go to [supabase.com](https://supabase.com) → **Start for free** → create an account
+2. Click **New project**, give it a name (e.g. "watchlist"), set a database password, click **Create**
+3. Wait ~1 minute for it to provision
+4. Go to **SQL Editor** → **New query**, paste the contents of `supabase-setup.sql`, click **Run**
+5. Go to **Project Settings → API** and copy:
+   - **Project URL** (looks like `https://xxxx.supabase.co`)
+   - **anon public** key (long string starting with `eyJ…`)
+6. Open `js/supabase-config.js` and replace the placeholders:
 
-1. Go to [github.com](https://github.com) → **New repository**
-2. Name it `watchlist`, set to **Public**, click **Create**
-
-### 2. Upload the files
-
-**Via GitHub web UI (easiest):**
-1. Open your new repo → **Add file → Upload files**
-2. Drag in the entire contents of this folder
-3. Click **Commit changes**
-
-**Via Git CLI:**
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/watchlist.git
-git push -u origin main
+```js
+const SUPABASE_URL  = 'https://xxxx.supabase.co';   // ← your Project URL
+const SUPABASE_ANON = 'eyJ…';                        // ← your anon public key
 ```
 
-### 3. Enable GitHub Pages
-
-1. Repo → **Settings → Pages**
-2. Source: **Deploy from a branch** → **main** / **root**
-3. Click **Save** — live in ~60 seconds at:
-   `https://YOUR_USERNAME.github.io/watchlist/`
+7. In Supabase dashboard → **Authentication → URL Configuration**, add your GitHub Pages URL to **Site URL** and **Redirect URLs** (e.g. `https://YOUR_USERNAME.github.io`)
 
 ---
 
-## Add to iPhone / iPad home screen
+### Step 2 — TMDB API key
 
-1. Open the GitHub Pages URL in **Safari**
-2. Tap the **Share button** (box with arrow)
-3. Tap **Add to Home Screen**
-4. Name it **Watchlist** → tap **Add**
+1. Go to [themoviedb.org](https://www.themoviedb.org) → create a free account
+2. **Settings → API → Create → Developer**
+3. Fill in the form (use "Personal" and any URL)
+4. Copy the **API Key (v3 auth)**
+5. You'll paste this into the app after logging in — it saves to your account automatically
 
-It installs as a full-screen app with no browser chrome.
+---
+
+### Step 3 — Deploy to GitHub Pages
+
+1. Create a new **public** GitHub repo (e.g. `watchlist`)
+2. Upload all files (drag & drop in the GitHub UI or use Git CLI)
+3. **Settings → Pages → Deploy from branch → main / root → Save**
+4. Your app is live at `https://YOUR_USERNAME.github.io/watchlist/`
+
+---
+
+### Step 4 — Add to iPhone / iPad home screen
+
+1. Open your GitHub Pages URL in **Safari**
+2. Tap the **Share button** → **Add to Home Screen** → **Add**
+
+Done — full-screen app with no browser chrome, synced to your account.
 
 ---
 
@@ -79,34 +75,36 @@ It installs as a full-screen app with no browser chrome.
 
 ```
 watchlist/
-├── index.html          # Main app shell
-├── manifest.json       # PWA config
-├── sw.js               # Service worker (offline support)
+├── index.html              # App shell (auth + all tabs)
+├── manifest.json           # PWA config
+├── sw.js                   # Service worker
+├── supabase-setup.sql      # Run once in Supabase SQL editor
 ├── css/
-│   └── style.css       # All styles — dark cinema theme
+│   └── style.css
 ├── js/
-│   ├── tmdb.js         # TMDB API wrapper
-│   └── app.js          # App logic
+│   ├── supabase-config.js  # ← PUT YOUR KEYS HERE
+│   ├── tmdb.js             # TMDB API wrapper
+│   ├── auth.js             # Supabase auth module
+│   ├── db.js               # Database operations
+│   └── app.js              # Main app logic
 └── icons/
-    ├── icon-180.png    # iOS home screen icon
-    ├── icon-192.png    # Android / PWA icon
-    └── icon-512.png    # Splash icon
+    ├── icon-180.png
+    ├── icon-192.png
+    └── icon-512.png
 ```
 
 ---
 
-## Changing the streaming region
+## Changing streaming region
 
-By default the app shows UK streaming providers. To change to your country, open `js/tmdb.js` and update:
+Open `js/tmdb.js` and update:
 
 ```js
 const REGION = 'GB'; // → 'US', 'AU', 'CA', 'DE', etc.
 ```
 
-Use any [ISO 3166-1](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) two-letter country code.
-
 ---
 
 ## Tech
 
-Plain HTML, CSS, and vanilla JavaScript. No build tools, no frameworks, no npm. Deployable to any static host.
+Plain HTML, CSS, vanilla JS. [Supabase](https://supabase.com) for auth and database. [TMDB](https://themoviedb.org) for film data. No build tools, no frameworks.
