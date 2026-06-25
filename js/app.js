@@ -63,27 +63,33 @@ function isInWL(tmdbId) { return watchlist.some(w => w.tmdbId === tmdbId); }
 
 // ── API key flow ──────────────────────────────────────────────────────────
 function showApp() {
-  document.getElementById('api-banner').classList.add('hidden');
+  document.getElementById('tmdb-key-banner').classList.add('hidden');
   document.getElementById('search-controls').style.display = 'flex';
   document.getElementById('search-hint').style.display = 'flex';
 }
 
-async function submitKey() {
-  const inp = document.getElementById('api-key-input');
+async function submitTmdbKey(inputId) {
+  const inp = document.getElementById(inputId);
   const key = inp.value.trim();
-  const btn = document.getElementById('key-submit-btn');
+  const btn = document.getElementById(inputId === 'api-key-input' ? 'key-submit-btn' : 'settings-key-btn');
+  const defaultHtml = inputId === 'api-key-input'
+    ? '<i class="ti ti-check"></i> Save key'
+    : '<i class="ti ti-device-floppy"></i> Update key';
   if (!key) return;
-  btn.disabled = true; btn.textContent = 'Checking…';
+  btn.disabled = true;
+  btn.innerHTML = 'Checking…';
   TMDB.setKey(key);
   try {
     await TMDB.searchMulti('test');
     saveKey(key);
-    showApp();
+    if (inputId === 'api-key-input') showApp();
     toast('API key saved ✓', 'success');
   } catch (e) {
     TMDB.setKey('');
     toast(e.message === 'BAD_KEY' ? 'Invalid API key — check and try again' : 'Connection error', 'warn');
-    btn.disabled = false; btn.textContent = 'Save key';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = defaultHtml;
   }
 }
 
@@ -447,7 +453,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateBadge();
 
   document.getElementById('api-key-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') submitKey();
+    if (e.key === 'Enter') submitTmdbKey('api-key-input');
+  });
+  document.getElementById('settings-tmdb-key').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitTmdbKey('settings-tmdb-key');
   });
   document.getElementById('yt-url').addEventListener('keydown',   e => { if (e.key === 'Enter') addYT(); });
   document.getElementById('yt-title').addEventListener('keydown', e => { if (e.key === 'Enter') addYT(); });
@@ -477,4 +486,4 @@ window.renderWatchlist = renderWatchlist;
 window.addYT       = addYT;
 window.removeYT    = removeYT;
 window.setYTStatus = setYTStatus;
-window.submitKey   = submitKey;
+window.submitTmdbKey = submitTmdbKey;
