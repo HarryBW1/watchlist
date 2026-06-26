@@ -18,81 +18,134 @@
 </head>
 <body>
 
-<!-- ── Loading screen ────────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN 0 — Loading
+════════════════════════════════════════════════════════════════════════════ -->
 <div id="loading-screen">
   <div class="logo-lg"><i class="ti ti-player-play"></i></div>
   <span id="loading-label">Loading…</span>
 </div>
 
-<!-- ── Auth screen ───────────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN 1 — Auth (Sign up / Sign in)
+     Default tab is Sign up so new users see it first.
+════════════════════════════════════════════════════════════════════════════ -->
 <div id="auth-screen" style="display:none">
   <div class="auth-card">
     <div class="auth-logo"><i class="ti ti-player-play"></i></div>
     <h1>Watchlist</h1>
-    <p class="auth-sub">Your streaming tracker, synced everywhere</p>
+    <p class="auth-sub">Track everything you want to watch, synced across all your devices.</p>
 
     <div class="auth-tabs">
-      <button class="auth-tab active" data-tab="login" onclick="setAuthTab('login')">Sign in</button>
-      <button class="auth-tab" data-tab="signup" onclick="setAuthTab('signup')">Sign up</button>
+      <button class="auth-tab" data-tab="signup" onclick="setAuthTab('signup')">Create account</button>
+      <button class="auth-tab" data-tab="login"  onclick="setAuthTab('login')">Sign in</button>
     </div>
 
-    <h2 id="auth-form-title" style="text-align:center;font-size:1rem;margin-bottom:16px">Welcome back</h2>
+    <h2 id="auth-form-title" style="text-align:center;font-size:1rem;margin-bottom:16px">Create your account</h2>
 
     <div class="auth-fields">
-      <input type="email" id="auth-email" placeholder="Email address" autocomplete="email" inputmode="email" />
-      <input type="password" id="auth-password" placeholder="Password (6+ characters)" autocomplete="current-password" />
+      <input type="email"    id="auth-email"    placeholder="Email address"       autocomplete="email" inputmode="email" />
+      <input type="password" id="auth-password" placeholder="Password (6+ chars)" autocomplete="new-password" />
     </div>
 
     <p id="auth-error"></p>
-    <button id="auth-submit-btn" onclick="submitAuth()">Sign in</button>
+    <button id="auth-submit-btn" onclick="submitAuth()">Create account</button>
     <p id="auth-switch-msg">
-      Don't have an account?
-      <button class="link-btn" onclick="setAuthTab('signup')">Sign up</button>
+      Already have an account? <button class="link-btn" onclick="setAuthTab('login')">Sign in</button>
     </p>
   </div>
 </div>
 
-<!-- ── App shell (shown after login) ─────────────────────────────────────── -->
-<div id="app-shell">
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN 2 — Onboarding (TMDB key, shown once after first login)
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="onboarding-screen" style="display:none">
+  <div class="onboarding-card">
+    <div class="onboarding-step"><i class="ti ti-circle-check"></i> Account created</div>
+    <h2>One last thing — connect TMDB</h2>
+    <p class="sub">
+      Watchlist uses The Movie Database to fetch posters, descriptions, ratings, and streaming
+      provider info. A TMDB account and API key are free and take about 2 minutes to set up.
+    </p>
 
-  <!-- Header -->
+    <div class="onboarding-email-hint">
+      <i class="ti ti-user-circle"></i>
+      Signed in as <strong id="onboarding-email-hint"></strong>
+    </div>
+
+    <div class="onboarding-steps-list">
+      <div class="step-row">
+        <span class="step-num">1</span>
+        <span>Go to <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org/signup</a> and create a free account</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num">2</span>
+        <span>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">Settings → API</a>, click <strong style="color:var(--text)">Create</strong>, choose <strong style="color:var(--text)">Developer</strong></span>
+      </div>
+      <div class="step-row">
+        <span class="step-num">3</span>
+        <span>Copy your <strong style="color:var(--text)">API Key (v3 auth)</strong> and paste it below</span>
+      </div>
+    </div>
+
+    <div class="onboarding-key-row">
+      <input type="text" id="onboarding-key-input"
+             placeholder="Paste your TMDB API key here…"
+             autocomplete="off" autocorrect="off" spellcheck="false" />
+      <p id="onboarding-error"></p>
+      <button id="onboarding-key-btn" onclick="submitOnboardingKey()">
+        <i class="ti ti-check"></i> Confirm &amp; enter app
+      </button>
+    </div>
+
+    <p class="onboarding-skip">
+      Your key is saved to your account — you'll never need to enter it again on any device.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCREEN 3 — App shell (shown after login + key confirmed)
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="app-shell" style="display:none">
+
   <header class="app-header">
     <div class="logo" aria-hidden="true"><i class="ti ti-player-play"></i></div>
     <h1>Watchlist</h1>
-    <nav class="desktop-tabs" aria-label="Main navigation">
-      <button class="desktop-tab active" data-tab="search"    onclick="switchTab('search')"><i class="ti ti-search"></i> Search</button>
-      <button class="desktop-tab"        data-tab="watchlist" onclick="switchTab('watchlist')"><i class="ti ti-bookmark"></i> Watchlist <span class="dt-badge"></span></button>
-      <button class="desktop-tab"        data-tab="youtube"   onclick="switchTab('youtube')"><i class="ti ti-brand-youtube"></i> YouTube</button>
-      <button class="desktop-tab"        data-tab="settings"  onclick="switchTab('settings')"><i class="ti ti-settings"></i> Settings</button>
+    <nav class="desktop-tabs">
+      <button class="desktop-tab active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i> Home</button>
+      <button class="desktop-tab"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i> Search</button>
+      <button class="desktop-tab"        data-tab="watchlist" onclick="switchTab('watchlist')"> <i class="ti ti-bookmark"></i> Watchlist <span class="dt-badge"></span></button>
+      <button class="desktop-tab"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i> YouTube</button>
+      <button class="desktop-tab"        data-tab="settings"  onclick="switchTab('settings')">  <i class="ti ti-settings"></i> Settings</button>
     </nav>
-    <div class="user-avatar" id="user-avatar" onclick="switchTab('settings')" title="Account settings">?</div>
+    <div class="user-avatar" id="user-avatar" onclick="switchTab('settings')" title="Account">?</div>
   </header>
 
-  <!-- Main content -->
   <main>
 
-    <!-- ── Search ──────────────────────────────────────────────────────── -->
-    <section id="tab-search" class="tab-panel active">
+    <!-- HOME -->
+    <section id="tab-home" class="tab-panel active">
+      <div id="home-content">
+        <div class="home-loading"><i class="ti ti-loader spin" style="font-size:28px;color:var(--hint)"></i></div>
+      </div>
+    </section>
 
-      <!-- TMDB key setup (shown until key is saved) -->
-      <div class="api-banner" id="tmdb-key-banner">
+    <!-- SEARCH -->
+    <section id="tab-search" class="tab-panel">
+      <!-- Shown only if somehow key is missing (edge case) -->
+      <div class="api-banner hidden" id="tmdb-key-banner">
         <i class="ti ti-key"></i>
         <div class="api-banner-body">
-          <h2>Connect TMDB</h2>
-          <p>Get a free API key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a> — sign up → Settings → API → Developer. Paste it below and it's saved to your account.</p>
-          <div class="api-key-row">
-            <input type="password" id="api-key-input" placeholder="Paste your TMDB API key (v3 auth)" autocomplete="off" />
-            <button class="primary-btn" id="key-submit-btn" onclick="submitTmdbKey('api-key-input')">
-              <i class="ti ti-check"></i> Save key
-            </button>
-          </div>
+          <h2>TMDB key needed</h2>
+          <p>Go to <a href="#" onclick="switchTab('settings')">Settings</a> to add your TMDB API key.</p>
         </div>
       </div>
 
       <div class="search-controls" id="search-controls" style="display:none">
         <div class="search-wrap">
           <i class="ti ti-search s-icon"></i>
-          <input type="text" id="s-input" placeholder="Search films & series…"
+          <input type="text" id="s-input" placeholder="Search films &amp; series…"
                  oninput="onSearchInput()" autocomplete="off" autocorrect="off" spellcheck="false" />
           <i class="ti ti-loader spin spinner" id="search-spinner"></i>
         </div>
@@ -108,37 +161,41 @@
         <p>Search any film or series.<br>Posters, descriptions and streaming providers load automatically.</p>
         <div class="platform-pills">
           <span class="platform-chip"><span class="dot" style="background:#e50914"></span>Netflix</span>
-          <span class="platform-chip"><span class="dot" style="background:#3b82f6"></span>Disney+</span>
-          <span class="platform-chip"><span class="dot" style="background:#a78bfa"></span>HBO Max</span>
-          <span class="platform-chip"><span class="dot" style="background:#60a5fa"></span>Paramount+</span>
-          <span class="platform-chip"><span class="dot" style="background:#38bdf8"></span>Prime Video</span>
+          <span class="platform-chip"><span class="dot" style="background:#00a8e0"></span>Prime Video</span>
+          <span class="platform-chip"><span class="dot" style="background:#a0a0a0"></span>Apple TV</span>
+          <span class="platform-chip"><span class="dot" style="background:#1a6fff"></span>Disney+</span>
+          <span class="platform-chip"><span class="dot" style="background:#1b57e4"></span>Paramount+</span>
+          <span class="platform-chip"><span class="dot" style="background:#cc0000"></span>BBC iPlayer</span>
         </div>
       </div>
 
       <div class="cards-grid" id="search-grid" role="list"></div>
     </section>
 
-    <!-- ── Watchlist ────────────────────────────────────────────────────── -->
+    <!-- WATCHLIST -->
     <section id="tab-watchlist" class="tab-panel">
       <div class="stats-row" id="wl-stats"></div>
       <div class="wl-filters">
-        <select id="wl-st"   onchange="renderWatchlist()">
+        <select id="wl-st" onchange="renderWatchlist()">
           <option value="all">All statuses</option>
           <option value="Want to watch">Want to watch</option>
           <option value="Watching">Watching</option>
           <option value="Finished">Finished</option>
           <option value="Dropped">Dropped</option>
         </select>
-        <select id="wl-pf"   onchange="renderWatchlist()">
+        <select id="wl-pf" onchange="renderWatchlist()">
           <option value="all">All platforms</option>
           <option value="Netflix">Netflix</option>
-          <option value="Disney+">Disney+</option>
-          <option value="HBO Max">HBO Max</option>
-          <option value="Paramount+">Paramount+</option>
-          <option value="Prime Video">Prime Video</option>
+          <option value="Amazon Prime Video">Amazon Prime Video</option>
+          <option value="Apple TV">Apple TV</option>
+          <option value="Disney Plus">Disney Plus</option>
+          <option value="Paramount Plus">Paramount Plus</option>
+          <option value="HBO Max Amazon Channel">HBO Max</option>
+          <option value="Channel 4">Channel 4</option>
+          <option value="BBC iPlayer">BBC iPlayer</option>
         </select>
         <select id="wl-type" onchange="renderWatchlist()">
-          <option value="all">Films & Series</option>
+          <option value="all">Films &amp; Series</option>
           <option value="movie">Films only</option>
           <option value="tv">Series only</option>
         </select>
@@ -146,21 +203,26 @@
       <div class="cards-grid" id="wl-grid" role="list"></div>
     </section>
 
-    <!-- ── YouTube ──────────────────────────────────────────────────────── -->
+    <!-- YOUTUBE -->
     <section id="tab-youtube" class="tab-panel">
       <div class="yt-add-card">
         <h2><i class="ti ti-brand-youtube"></i> Add a YouTube video</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+          Paste a link — the title and thumbnail are fetched automatically.
+        </p>
         <div class="yt-inputs">
           <input type="url"  id="yt-url"   placeholder="Paste YouTube URL…" autocomplete="off" inputmode="url" />
-          <input type="text" id="yt-title" placeholder="Title (optional)"   autocomplete="off" />
-          <button class="primary-btn" onclick="addYT()"><i class="ti ti-plus"></i> Add video</button>
+          <input type="text" id="yt-title" placeholder="Override title (optional)" autocomplete="off" />
+          <button class="primary-btn" id="yt-add-btn" onclick="addYT()">
+            <i class="ti ti-plus"></i> Add video
+          </button>
         </div>
       </div>
       <p class="yt-list-header" id="yt-list-header" style="display:none"></p>
       <div id="yt-list" role="list"></div>
     </section>
 
-    <!-- ── Settings ─────────────────────────────────────────────────────── -->
+    <!-- SETTINGS -->
     <section id="tab-settings" class="tab-panel">
 
       <div class="settings-section">
@@ -178,16 +240,17 @@
 
       <div class="settings-section">
         <h2><i class="ti ti-api"></i> TMDB API Key</h2>
-        <p style="font-size:13px;margin-bottom:12px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
           Your key is stored securely in your account and synced across all devices.
           Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>.
         </p>
         <div class="settings-row">
           <label>API Key (v3 auth)</label>
-          <input type="password" id="settings-tmdb-key" placeholder="sk-…" autocomplete="off" />
+          <input type="password" id="settings-tmdb-key" placeholder="Paste new key to update…" autocomplete="off" />
         </div>
-        <div style="margin-top:10px">
-          <button class="primary-btn" id="settings-key-btn" onclick="submitTmdbKey('settings-tmdb-key')">
+        <p id="settings-key-error" style="font-size:13px;color:var(--danger);margin-top:6px;min-height:18px"></p>
+        <div style="margin-top:4px">
+          <button class="primary-btn" id="settings-key-btn" onclick="submitTmdbKey()">
             <i class="ti ti-device-floppy"></i> Update key
           </button>
         </div>
@@ -195,9 +258,11 @@
 
       <div class="settings-section">
         <h2><i class="ti ti-map-pin"></i> Streaming Region</h2>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
-          Controls which streaming providers are shown. Currently set to <strong style="color:var(--text)">United Kingdom</strong>.
-          To change, edit <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code> and update <code style="font-size:12px;color:var(--accent)">const REGION</code>.
+        <p style="font-size:13px;color:var(--muted)">
+          Currently set to <strong style="color:var(--text)">United Kingdom (GB)</strong>.
+          To change region, open <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code>
+          and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
+          to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
         </p>
       </div>
 
@@ -206,11 +271,12 @@
   </main>
 
   <!-- Bottom nav (mobile) -->
-  <nav class="bottom-nav" aria-label="Navigation">
-    <button class="nav-btn active" data-tab="search"    onclick="switchTab('search')"><i class="ti ti-search"></i>Search</button>
-    <button class="nav-btn"        data-tab="watchlist" onclick="switchTab('watchlist')"><i class="ti ti-bookmark"></i><span class="mob-badge"></span>Watchlist</button>
-    <button class="nav-btn"        data-tab="youtube"   onclick="switchTab('youtube')"><i class="ti ti-brand-youtube"></i>YouTube</button>
-    <button class="nav-btn"        data-tab="settings"  onclick="switchTab('settings')"><i class="ti ti-settings"></i>Settings</button>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i>Home</button>
+    <button class="nav-btn"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i>Search</button>
+    <button class="nav-btn"        data-tab="watchlist" onclick="switchTab('watchlist')"> <i class="ti ti-bookmark"></i><span class="mob-badge"></span>List</button>
+    <button class="nav-btn"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i>YouTube</button>
+    <button class="nav-btn"        data-tab="settings"  onclick="switchTab('settings')">  <i class="ti ti-settings"></i>Settings</button>
   </nav>
 
 </div><!-- /#app-shell -->
@@ -223,10 +289,11 @@
 <!-- Toast -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- Scripts -->
+<!-- Scripts — load order matters -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/tmdb.js"></script>
+<script src="js/youtube.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/db.js"></script>
 <script src="js/app.js"></script>

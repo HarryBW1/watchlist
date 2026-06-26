@@ -1,9 +1,13 @@
-const CACHE = 'watchlist-v2';
+const CACHE = 'watchlist-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/style.css',
+  '/js/supabase-config.js',
   '/js/tmdb.js',
+  '/js/youtube.js',
+  '/js/auth.js',
+  '/js/db.js',
   '/js/app.js',
   '/manifest.json',
   '/icons/icon-192.png',
@@ -11,11 +15,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -27,12 +27,15 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Always fetch TMDB API calls live — never cache them
-  if (e.request.url.includes('api.themoviedb.org') || e.request.url.includes('image.tmdb.org')) {
+  // Always live: TMDB API, TMDB images, YouTube oEmbed, YouTube thumbnails, Supabase
+  const url = e.request.url;
+  if (url.includes('api.themoviedb.org') ||
+      url.includes('image.tmdb.org') ||
+      url.includes('youtube-nocookie.com') ||
+      url.includes('img.youtube.com') ||
+      url.includes('supabase.co')) {
     e.respondWith(fetch(e.request));
     return;
   }
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
 });

@@ -1,23 +1,37 @@
 'use strict';
-// ── TMDB API wrapper ──────────────────────────────────────────────────────
-const TMDB_BASE   = 'https://api.themoviedb.org/3';
-const IMG_BASE    = 'https://image.tmdb.org/t/p/';
-const REGION      = 'GB'; // UK streaming providers — change to US, AU etc if needed
+// ── TMDB API wrapper ───────────────────────────────────────────────────────
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+const IMG_BASE  = 'https://image.tmdb.org/t/p/';
+const REGION    = 'GB';
 
-// Provider → our display colour (TMDB provider_id keys)
-const PROVIDER_COLORS = {
-  8:   { name:'Netflix',      dot:'#e50914', bg:'#2a0a0a', text:'#ff8080' },
-  337: { name:'Disney+',      dot:'#3b82f6', bg:'#0a1226', text:'#7eb8ff' },
-  384: { name:'HBO Max',      dot:'#a78bfa', bg:'#140d26', text:'#c4b5fd' },
-  531: { name:'Paramount+',   dot:'#60a5fa', bg:'#081230', text:'#93c5fd' },
-  119: { name:'Prime Video',  dot:'#38bdf8', bg:'#031824', text:'#7dd3fc' },
-  // extras often returned
-  350: { name:'Apple TV+',    dot:'#aaaaaa', bg:'#1a1a1a', text:'#cccccc' },
-  283: { name:'Crunchyroll',  dot:'#f97316', bg:'#200d00', text:'#fdba74' },
+// Verified TMDB provider IDs for GB region
+// Check: /watch/providers/movie?watch_region=GB and /watch/providers/tv?watch_region=GB
+const PROVIDERS = {
+  8:    { name: 'Netflix',                 dot: '#e50914', bg: '#2a0a0a', text: '#ff8080' },
+  119:  { name: 'Amazon Prime Video',      dot: '#00a8e0', bg: '#00111a', text: '#67d7f5' },
+  350:  { name: 'Apple TV',                dot: '#a0a0a0', bg: '#1a1a1a', text: '#d0d0d0' },
+  337:  { name: 'Disney Plus',             dot: '#1a6fff', bg: '#020d26', text: '#7eb8ff' },
+  531:  { name: 'Paramount Plus',          dot: '#1b57e4', bg: '#020d26', text: '#93c5fd' },
+  1899: { name: 'HBO Max Amazon Channel',  dot: '#5822b4', bg: '#140d26', text: '#c4b5fd' },
+  384:  { name: 'HBO Max Amazon Channel',  dot: '#5822b4', bg: '#140d26', text: '#c4b5fd' },
+  103:  { name: 'Channel 4',              dot: '#6600cc', bg: '#110022', text: '#cc88ff' },
+  38:   { name: 'BBC iPlayer',             dot: '#cc0000', bg: '#1a0000', text: '#ff6666' },
+  39:   { name: 'BBC iPlayer',             dot: '#cc0000', bg: '#1a0000', text: '#ff6666' },
 };
 
-let _apiKey = '';
+// Ordered list for filter dropdowns — name must match exactly what TMDB returns for GB
+const PROVIDER_LIST = [
+  { id: 8,    name: 'Netflix' },
+  { id: 119,  name: 'Amazon Prime Video' },
+  { id: 350,  name: 'Apple TV' },
+  { id: 337,  name: 'Disney Plus' },
+  { id: 531,  name: 'Paramount Plus' },
+  { id: 1899, name: 'HBO Max Amazon Channel' },
+  { id: 103,  name: 'Channel 4' },
+  { id: 38,   name: 'BBC iPlayer' },
+];
 
+let _apiKey = '';
 function setKey(k) { _apiKey = k.trim(); }
 function getKey()  { return _apiKey; }
 
@@ -40,18 +54,44 @@ async function searchMulti(query, page = 1) {
 async function getProviders(id, mediaType) {
   const data = await tmdbGet(`/${mediaType}/${id}/watch/providers`);
   const region = (data.results || {})[REGION] || {};
-  return region.flatrate || [];   // subscription streaming only
+  return [...(region.flatrate || []), ...(region.free || [])];
 }
 
 async function getDetails(id, mediaType) {
   return tmdbGet(`/${mediaType}/${id}`, { append_to_response: 'credits' });
 }
 
-function posterUrl(path, size = 'w342')  { return path ? IMG_BASE + size + path : null; }
-function backdropUrl(path, size = 'w780') { return path ? IMG_BASE + size + path : null; }
-
-function providerInfo(providerId) {
-  return PROVIDER_COLORS[providerId] || { name: null, dot: '#888', bg: '#1a1a1a', text: '#aaa' };
+async function getTrending(mediaType = 'all', timeWindow = 'week') {
+  const data = await tmdbGet(`/trending/${mediaType}/${timeWindow}`);
+  return (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
 }
 
-window.TMDB = { setKey, getKey, searchMulti, getProviders, getDetails, posterUrl, backdropUrl, providerInfo, PROVIDER_COLORS };
+async function getNowPlaying() {
+  const data = await tmdbGet('/movie/now_playing', { region: REGION });
+  return (data.results || []).map(r => ({ ...r, media_type: 'movie' }));
+}
+
+async function getOnAir() {
+  const data = await tmdbGet('/tv/on_the_air');
+  return (data.results || []).map(r => ({ ...r, media_type: 'tv' }));
+}
+
+async function getPopularMovies() {
+  const data = await tmdbGet('/movie/popular', { region: REGION });
+  return (data.results || []).map(r => ({ ...r, media_type: 'movie' }));
+}
+
+async function getPopularTV() {
+  const data = await tmdbGet('/tv/popular');
+  return (data.results || []).map(r => ({ ...r, media_type: 'tv' }));
+}
+
+function posterUrl(path, size = 'w342')   { return path ? IMG_BASE + size + path : null; }
+function backdropUrl(path, size = 'w780') { return path ? IMG_BASE + size + path : null; }
+function providerInfo(id) { return PROVIDERS[id] || { name: null, dot: '#888', bg: '#1a1a1a', text: '#aaa' }; }
+
+window.TMDB = {
+  setKey, getKey, searchMulti, getProviders, getDetails,
+  getTrending, getNowPlaying, getOnAir, getPopularMovies, getPopularTV,
+  posterUrl, backdropUrl, providerInfo, PROVIDERS, PROVIDER_LIST,
+};
