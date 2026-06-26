@@ -18,7 +18,13 @@ function sbClient() { return _sb; }
 
 // ── Auth actions ───────────────────────────────────────────────────────────
 async function signUp(email, password) {
-  const { data, error } = await _sb.auth.signUp({ email, password });
+  const { data, error } = await _sb.auth.signUp({ 
+    email,
+    password,
+    options: {
+      emailRedirectTo: 'https://harrybw.github.io/watchlist/'
+    }
+  });
   if (error) throw error;
   return data;
 }
