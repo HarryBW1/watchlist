@@ -22,7 +22,7 @@ async function signUp(email, password) {
     email,
     password,
     options: {
-      emailRedirectTo: 'https://harrybw.github.io/watchlist/'
+      emailRedirectTo: 'https://harrybw1.github.io/watchlist/'
     }
   });
   if (error) throw error;
