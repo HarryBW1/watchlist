@@ -104,18 +104,26 @@ async function loadYTLinks(userId) {
 }
 
 async function upsertYTLink(userId, link) {
-  const { error } = await sb()
-    .from('yt_links')
-    .upsert({
-      id:            link.id,
-      user_id:       userId,
-      url:           link.url,
-      title:         link.title,
-      thumbnail_url: link.thumbnailUrl || null,
-      video_id:      link.videoId      || null,
-      status:        link.status,
-      added_at:      new Date(link.addedAt).toISOString(),
-    }, { onConflict: 'id' });
+  const payload = {
+    id:            link.id,
+    user_id:       userId,
+    url:           link.url,
+    title:         link.title,
+    thumbnail_url: link.thumbnailUrl || null,
+    video_id:      link.videoId      || null,
+    status:        link.status,
+    added_at:      new Date(link.addedAt).toISOString(),
+  };
+  let { error } = await sb().from('yt_links').upsert(payload, { onConflict: 'id' });
+
+  // Fallback: older yt_links tables created before thumbnail_url/video_id existed.
+  // Retry without those columns so the save still succeeds.
+  if (error && /column .*(thumbnail_url|video_id)/i.test(error.message || '')) {
+    const { thumbnail_url, video_id, ...legacyPayload } = payload;
+    const retry = await sb().from('yt_links').upsert(legacyPayload, { onConflict: 'id' });
+    error = retry.error;
+  }
+
   if (error) throw error;
 }
 

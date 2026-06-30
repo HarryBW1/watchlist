@@ -26,6 +26,22 @@
   <span id="loading-label">Loading…</span>
 </div>
 
+<!-- Shown if Supabase CDN fails or config is missing -->
+<div id="error-screen" style="display:none;position:fixed;inset:0;background:var(--bg);
+     display:none;align-items:center;justify-content:center;padding:24px;z-index:400">
+  <div style="max-width:420px;background:var(--surface);border:1px solid rgba(239,68,68,0.4);
+       border-radius:16px;padding:28px 24px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <i class="ti ti-alert-triangle" style="font-size:22px;color:#f87171"></i>
+      <h2 style="font-size:1rem;color:#f87171">Setup required</h2>
+    </div>
+    <p id="error-message" style="font-size:13px;color:var(--muted);line-height:1.7;font-family:monospace"></p>
+    <button onclick="location.reload()" class="primary-btn" style="margin-top:18px;width:100%">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════════════════════
      SCREEN 1 — Auth (Sign up / Sign in)
      Default tab is Sign up so new users see it first.

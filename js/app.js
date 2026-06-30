@@ -50,7 +50,7 @@ function isInWL(tmdbId) { return watchlist.some(w => w.tmdbId === tmdbId); }
 // Screen 3: app shell (the full app)
 
 function showScreen(name) {
-  ['loading-screen', 'auth-screen', 'onboarding-screen', 'app-shell'].forEach(id => {
+  ['loading-screen', 'auth-screen', 'onboarding-screen', 'app-shell', 'error-screen'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -669,17 +669,21 @@ function renderYT() {
   container.innerHTML = ytLinks.map(y => {
     const thumb = y.thumbnailUrl || (y.videoId ? `https://img.youtube.com/vi/${y.videoId}/mqdefault.jpg` : null);
     return `<div class="yt-item-row">
-      ${thumb
-        ? `<img class="yt-thumb" src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
-        : `<div class="yt-thumb-ph"><i class="ti ti-brand-youtube yt-icon"></i></div>`}
-      <div class="yt-info">
-        <a href="${esc(y.url)}" target="_blank" rel="noopener" class="yt-link">${esc(y.title)}</a>
-        ${statusBadge(y.status)}
+      <div class="yt-item-top">
+        ${thumb
+          ? `<img class="yt-thumb" src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+          : `<div class="yt-thumb-ph"><i class="ti ti-brand-youtube yt-icon"></i></div>`}
+        <div class="yt-info">
+          <a href="${esc(y.url)}" target="_blank" rel="noopener" class="yt-link">${esc(y.title)}</a>
+          ${statusBadge(y.status)}
+        </div>
       </div>
-      <select class="status-sel yt-sel" onchange="setYTStatus('${esc(y.id)}',this.value)">
-        ${Object.keys(STATUS_CONFIG).map(s => `<option ${y.status===s?'selected':''}>${esc(s)}</option>`).join('')}
-      </select>
-      <button class="icon-btn" onclick="removeYT('${esc(y.id)}')" aria-label="Remove"><i class="ti ti-trash"></i></button>
+      <div class="yt-item-controls">
+        <select class="status-sel yt-sel" onchange="setYTStatus('${esc(y.id)}',this.value)">
+          ${Object.keys(STATUS_CONFIG).map(s => `<option ${y.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+        </select>
+        <button class="icon-btn" onclick="removeYT('${esc(y.id)}')" aria-label="Remove"><i class="ti ti-trash"></i></button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -692,13 +696,26 @@ function renderSettings() {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!Auth.initSupabase()) {
-    document.body.innerHTML = `<div style="padding:40px;color:#f87171;font-family:monospace;line-height:1.8">
-      <strong>Supabase not configured.</strong><br>
-      Open <code>js/supabase-config.js</code> and replace the placeholder values<br>
-      with your Project URL and anon key from the Supabase dashboard.</div>`;
+  // ── Guard: Supabase CDN must have loaded ───────────────────────────────
+  if (typeof window.supabase === 'undefined') {
+    showScreen('error-screen');
+    document.getElementById('error-message').textContent =
+      'Could not load Supabase library. Check your internet connection and reload.';
     return;
   }
+
+  // ── Guard: config must have real values ────────────────────────────────
+  if (!Auth.isConfigured()) {
+    showScreen('error-screen');
+    document.getElementById('error-message').innerHTML =
+      '<strong>Supabase not configured.</strong><br>' +
+      'Open <code>js/supabase-config.js</code> and replace<br>' +
+      '<code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code><br>' +
+      'with your values from the Supabase dashboard.';
+    return;
+  }
+
+  Auth.initSupabase();
 
   // Default to sign-up tab (better for new users)
   setAuthTab('signup');
@@ -727,6 +744,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     showScreen('auth-screen');
   }
   // If user exists, onAuthChange already fired and handleUser() is running
+
+  // Safety net — if still on loading screen after 8 seconds, show auth instead
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    if (ls && ls.style.display !== 'none') {
+      console.warn('Loading timeout — falling back to auth screen');
+      showScreen('auth-screen');
+    }
+  }, 8000);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 });

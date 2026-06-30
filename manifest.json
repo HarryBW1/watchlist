@@ -1,8 +1,9 @@
 {
   "name": "Watchlist",
   "short_name": "Watchlist",
-  "description": "Your personal streaming watchlist — Netflix, Disney+, HBO Max, Paramount+, Prime Video & YouTube",
-  "start_url": "/index.html",
+  "description": "Your personal streaming watchlist",
+  "start_url": "/watchlist/",
+  "scope": "/watchlist/",
   "display": "standalone",
   "background_color": "#0f0f14",
   "theme_color": "#0f0f14",

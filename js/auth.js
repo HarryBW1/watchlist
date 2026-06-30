@@ -1,30 +1,44 @@
 'use strict';
 // ── Auth module ────────────────────────────────────────────────────────────
-// Wraps Supabase auth and exposes a simple interface to the rest of the app.
 
-let _sb = null;  // Supabase client, initialised on DOMContentLoaded
+let _sb = null;
 
 function initSupabase() {
-  const { url, anon } = window.SB_CONFIG;
-  if (!url || url === 'YOUR_SUPABASE_URL') {
-    console.warn('Supabase not configured — see js/supabase-config.js');
+  // Guard: supabase JS must be loaded
+  if (typeof window.supabase === 'undefined') {
+    console.error('Supabase JS library not loaded');
     return false;
   }
-  _sb = window.supabase.createClient(url, anon);
-  return true;
+  const cfg = window.SB_CONFIG || {};
+  if (!cfg.url || cfg.url === 'YOUR_SUPABASE_URL' ||
+      !cfg.anon || cfg.anon === 'YOUR_SUPABASE_ANON_KEY') {
+    return false; // caller will show config error
+  }
+  try {
+    _sb = window.supabase.createClient(cfg.url, cfg.anon, {
+      auth: {
+        persistSession:   true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      }
+    });
+    return true;
+  } catch (e) {
+    console.error('Supabase init failed:', e);
+    return false;
+  }
+}
+
+function isConfigured() {
+  const cfg = window.SB_CONFIG || {};
+  return !!(cfg.url && cfg.url !== 'YOUR_SUPABASE_URL' &&
+            cfg.anon && cfg.anon !== 'YOUR_SUPABASE_ANON_KEY');
 }
 
 function sbClient() { return _sb; }
 
-// ── Auth actions ───────────────────────────────────────────────────────────
 async function signUp(email, password) {
-  const { data, error } = await _sb.auth.signUp({ 
-    email,
-    password,
-    options: {
-      emailRedirectTo: 'https://harrybw1.github.io/watchlist/'
-    }
-  });
+  const { data, error } = await _sb.auth.signUp({ email, password });
   if (error) throw error;
   return data;
 }
@@ -40,17 +54,16 @@ async function signOut() {
   if (error) throw error;
 }
 
-async function getSession() {
-  const { data } = await _sb.auth.getSession();
-  return data?.session ?? null;
-}
-
 async function getUser() {
-  const session = await getSession();
-  return session?.user ?? null;
+  try {
+    // getUser() hits the Supabase server — use getSession() for local check first
+    const { data: sessionData } = await _sb.auth.getSession();
+    return sessionData?.session?.user ?? null;
+  } catch {
+    return null;
+  }
 }
 
-// Listen for auth state changes (login / logout / token refresh)
 function onAuthChange(callback) {
   if (!_sb) return;
   _sb.auth.onAuthStateChange((_event, session) => {
@@ -58,4 +71,4 @@ function onAuthChange(callback) {
   });
 }
 
-window.Auth = { initSupabase, sbClient, signUp, signIn, signOut, getSession, getUser, onAuthChange };
+window.Auth = { initSupabase, isConfigured, sbClient, signUp, signIn, signOut, getUser, onAuthChange };

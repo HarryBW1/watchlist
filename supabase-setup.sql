@@ -79,3 +79,8 @@ drop policy if exists "Users can manage own yt_links" on yt_links;
 drop policy if exists "Users manage own yt_links"     on yt_links;
 create policy "Users manage own yt_links"
   on yt_links for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ── 5. Add missing columns to yt_links if upgrading from an older version ──
+-- Safe to run even if columns already exist.
+alter table yt_links add column if not exists thumbnail_url text;
+alter table yt_links add column if not exists video_id      text;
