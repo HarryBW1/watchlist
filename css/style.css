@@ -21,7 +21,7 @@
   font-size: 16px;
 }
 
-html { background: var(--bg); }
+html { background: var(--bg); overscroll-behavior-y: none; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -30,6 +30,7 @@ body {
   min-height: 100dvh;
   padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
 }
 
 h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
@@ -76,17 +77,29 @@ a  { color: var(--accent); text-decoration: none; }
 /* ── Bottom nav ──────────────────────────────────────────────────────────── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
-  height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Fixed height that accounts for safe area from the start — never recalculates */
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; z-index: 50;
+  display: flex; align-items: flex-start;
+  z-index: 50;
+  /* Own compositing layer — prevents Safari toolbar animation from causing repaints */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  /* Freeze the safe-area calculation so it doesn't shift during scroll */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 3px; background: none; border: none;
   color: var(--hint); font-size: 10px; font-family: inherit;
-  cursor: pointer; transition: color .15s; position: relative; padding-top: 6px;
+  cursor: pointer; transition: color .15s; position: relative;
+  padding-top: 6px; padding-bottom: 6px;
+  /* Buttons fill only the nav-h portion — safe area padding is in the bar itself */
+  height: var(--nav-h);
 }
-.nav-btn i { font-size: 22px; }
+.nav-btn i { font-size: 22px; flex-shrink: 0; }
 .nav-btn.active { color: var(--accent); }
 .nav-btn:hover:not(.active) { color: var(--muted); }
 .mob-badge {
@@ -117,7 +130,7 @@ main { max-width: 960px; margin: 0 auto; padding: 16px 16px 0; }
 .api-banner-body p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .api-banner-body a { color: var(--accent); font-size: 13px; }
 .api-key-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.api-key-row input { flex: 1; min-width: 200px; font-size: 13px; font-family: monospace; }
+.api-key-row input { flex: 1; min-width: 200px; font-size: 16px; font-family: monospace; }
 .api-banner.hidden { display: none; }
 
 /* ── Search controls ─────────────────────────────────────────────────────── */
@@ -137,7 +150,7 @@ input[type="text"], input[type="url"], input[type="password"], select {
   width: 100%; padding: 10px 12px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text);
-  font-family: inherit; font-size: 0.875rem; outline: none;
+  font-family: inherit; font-size: 16px; outline: none;
   transition: border-color .15s; -webkit-appearance: none;
 }
 .search-wrap input { padding-left: 36px; padding-right: 36px; }
@@ -527,7 +540,7 @@ select option { background: var(--surface2); }
 }
 .auth-tab.active { background: var(--surface2); color: var(--text); }
 .auth-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-.auth-fields input { font-size: 15px; padding: 11px 14px; }
+.auth-fields input { font-size: 16px; padding: 11px 14px; }
 #auth-error { font-size: 13px; color: var(--danger); min-height: 18px; margin-bottom: 4px; text-align: center; }
 #auth-submit-btn {
   width: 100%; padding: 12px; border-radius: var(--radius-sm);
@@ -565,7 +578,7 @@ select option { background: var(--surface2); }
 .settings-section h2 i { color: var(--accent); }
 .settings-row { display: flex; flex-direction: column; gap: 8px; }
 .settings-row label { font-size: 12px; color: var(--muted); }
-.settings-row input { font-size: 13px; font-family: monospace; }
+.settings-row input { font-size: 16px; font-family: monospace; }
 .settings-email { font-size: 14px; color: var(--text); padding: 4px 0; }
 .danger-btn {
   display: flex; align-items: center; gap: 6px;
@@ -679,7 +692,7 @@ select option { background: var(--surface2); }
 }
 .onboarding-steps-list a { color: var(--accent); font-size: 13px; }
 .onboarding-key-row { display: flex; flex-direction: column; gap: 8px; }
-.onboarding-key-row input { font-size: 14px; padding: 11px 14px; font-family: monospace; letter-spacing: 0.02em; }
+.onboarding-key-row input { font-size: 16px; padding: 11px 14px; font-family: monospace; letter-spacing: 0.02em; }
 #onboarding-error { font-size: 13px; color: var(--danger); min-height: 18px; }
 #onboarding-key-btn {
   width: 100%; padding: 12px; border-radius: var(--radius-sm);
