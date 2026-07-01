@@ -28,7 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--vv-offset-bottom, 0px));
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
@@ -76,26 +76,14 @@ a  { color: var(--accent); text-decoration: none; }
 
 /* ── Bottom nav ──────────────────────────────────────────────────────────── */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  /* Hardcoded pixel height — no env() so Safari cannot recalculate during scroll */
-  height: 64px;
+  position: fixed;
+  bottom: var(--vv-offset-bottom, 0px);
+  left: 0; right: 0;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--surface); border-top: 1px solid var(--border);
   display: flex; align-items: stretch;
   z-index: 50;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-/* Separate element covers the home indicator area below the nav.
-   It's not inside the nav bar so it can't affect the nav's size. */
-.bottom-nav::after {
-  content: '';
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--surface);
-  z-index: 49;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -459,7 +447,7 @@ select option { background: var(--surface2); }
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--vv-offset-bottom, 0px) + 12px);
   left: 50%; transform: translateX(-50%) translateY(8px);
   background: var(--surface2); border: 1px solid var(--border2);
   color: var(--text); padding: 9px 18px; border-radius: 20px;
