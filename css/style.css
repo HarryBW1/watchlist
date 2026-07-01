@@ -44,10 +44,9 @@ a  { color: var(--accent); text-decoration: none; }
   position: sticky; top: 0; z-index: 40;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  height: 56px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
   display: flex; align-items: center; gap: 10px;
-  padding-top: env(safe-area-inset-top, 0px);
 }
 .app-header .logo {
   width: 28px; height: 28px; background: var(--accent);
@@ -479,7 +478,7 @@ select option { background: var(--surface2); }
 @media (min-width: 800px) {
   .bottom-nav { display: none; }
   body { padding-bottom: 0; }
-  .app-header { height: 60px; padding: 0 24px; }
+  .app-header { min-height: calc(60px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 24px 0; }
   .desktop-tabs { display: flex; }
   main { padding: 20px 24px 0; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }

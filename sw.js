@@ -1,5 +1,5 @@
 // Service worker — uses relative paths so it works on any subdirectory (e.g. GitHub Pages /watchlist/)
-const CACHE = 'watchlist-v6';
+const CACHE = 'watchlist-v7';
 
 // Use relative paths — resolved relative to the SW's own location
 const ASSETS = [
