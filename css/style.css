@@ -28,7 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
-  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
@@ -77,27 +77,31 @@ a  { color: var(--accent); text-decoration: none; }
 /* ── Bottom nav ──────────────────────────────────────────────────────────── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
-  /* Fixed height that accounts for safe area from the start — never recalculates */
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  /* Hardcoded pixel height — no env() so Safari cannot recalculate during scroll */
+  height: 64px;
   background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; align-items: flex-start;
+  display: flex; align-items: stretch;
   z-index: 50;
-  /* Own compositing layer — prevents Safari toolbar animation from causing repaints */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  will-change: transform;
-  /* Freeze the safe-area calculation so it doesn't shift during scroll */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+/* Separate element covers the home indicator area below the nav.
+   It's not inside the nav bar so it can't affect the nav's size. */
+.bottom-nav::after {
+  content: '';
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: var(--surface);
+  z-index: 49;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 3px; background: none; border: none;
   color: var(--hint); font-size: 10px; font-family: inherit;
   cursor: pointer; transition: color .15s; position: relative;
-  padding-top: 6px; padding-bottom: 6px;
-  /* Buttons fill only the nav-h portion — safe area padding is in the bar itself */
-  height: var(--nav-h);
 }
 .nav-btn i { font-size: 22px; flex-shrink: 0; }
 .nav-btn.active { color: var(--accent); }
