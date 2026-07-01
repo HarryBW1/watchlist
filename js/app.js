@@ -652,6 +652,7 @@ async function setYTStatus(id, status) {
   const item = ytLinks.find(y => y.id === id);
   if (!item) return;
   item.status = status;
+  renderYT();
   try { await DB.updateYTStatus(currentUser.id, id, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
 }
