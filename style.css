@@ -77,15 +77,18 @@ a  { color: var(--accent); text-decoration: none; }
 /* ── Bottom nav ──────────────────────────────────────────────────────────── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
-  min-height: var(--nav-h);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Fixed height that accounts for safe area from the start — never recalculates */
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; z-index: 50;
-  /* Forces Safari to composite this as its own layer, which stops it from
-     visually resizing/jumping while the browser's UI chrome animates on scroll */
+  display: flex; align-items: flex-start;
+  z-index: 50;
+  /* Own compositing layer — prevents Safari toolbar animation from causing repaints */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
+  /* Freeze the safe-area calculation so it doesn't shift during scroll */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -93,7 +96,8 @@ a  { color: var(--accent); text-decoration: none; }
   color: var(--hint); font-size: 10px; font-family: inherit;
   cursor: pointer; transition: color .15s; position: relative;
   padding-top: 6px; padding-bottom: 6px;
-  min-height: var(--nav-h);
+  /* Buttons fill only the nav-h portion — safe area padding is in the bar itself */
+  height: var(--nav-h);
 }
 .nav-btn i { font-size: 22px; flex-shrink: 0; }
 .nav-btn.active { color: var(--accent); }
