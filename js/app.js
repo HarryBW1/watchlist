@@ -30,10 +30,17 @@ function toast(msg, type = 'info') {
 }
 
 function updateBadge() {
-  const total = watchlist.length + ytLinks.length;
+  const wlTotal = watchlist.length;
+  const ytTotal = ytLinks.length;
+
   document.querySelectorAll('.mob-badge, .dt-badge').forEach(el => {
-    el.textContent = total || '';
-    el.style.display = total ? 'inline-flex' : 'none';
+    el.textContent = wlTotal || '';
+    el.style.display = wlTotal ? 'inline-flex' : 'none';
+  });
+
+  document.querySelectorAll('.mob-badge-yt, .dt-badge-yt').forEach(el => {
+    el.textContent = ytTotal || '';
+    el.style.display = ytTotal ? 'inline-flex' : 'none';
   });
 }
 
@@ -540,7 +547,7 @@ function renderWatchlist() {
   const provLookup = {};
   TMDB.PROVIDER_LIST.forEach(p => { provLookup[p.name] = p.id; });
 
-  const total    = watchlist.length + ytLinks.length;
+  const total    = watchlist.length;
   const watching = watchlist.filter(w => w.status === 'Watching').length;
   const finished = watchlist.filter(w => w.status === 'Finished').length;
   const want     = watchlist.filter(w => w.status === 'Want to watch').length;
@@ -573,7 +580,7 @@ function renderWatchlist() {
   grid.innerHTML = filtered.map(w => {
     const poster = TMDB.posterUrl(w.posterPath, 'w342');
     const kind   = w.mediaType === 'movie' ? 'Film' : 'Series';
-    return `<div class="wl-card">
+    return `<div class="wl-card" data-tmdb="${w.tmdbId}">
       <div class="wl-card-poster" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
         ${poster ? `<img src="${esc(poster)}" alt="${esc(w.title)}" loading="lazy">` : `<div class="wl-poster-ph"><i class="ti ti-device-tv"></i></div>`}
         <button class="wl-remove-btn" onclick="event.stopPropagation();removeFromWL(${w.tmdbId})"><i class="ti ti-x"></i></button>
@@ -583,7 +590,7 @@ function renderWatchlist() {
         <p class="wl-card-meta">${w.year || ''}${w.year ? ' · ' : ''}${kind}</p>
         ${statusBadge(w.status)}
         <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
-          ${Object.keys(STATUS_CONFIG).map(s => `<option ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+          ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
         </select>
       </div>
     </div>`;
@@ -594,7 +601,12 @@ async function setStatus(tmdbId, status) {
   const item = watchlist.find(w => w.tmdbId === tmdbId);
   if (!item) return;
   item.status = status;
-  renderWatchlist();
+  // Update badge in-place — avoids full re-render which causes cross-browser onchange double-fire
+  const card = document.querySelector(`.wl-card[data-tmdb="${tmdbId}"]`);
+  if (card) {
+    const badge = card.querySelector('.status-badge');
+    if (badge) badge.outerHTML = statusBadge(status);
+  }
   try { await DB.updateWatchlistStatus(currentUser.id, tmdbId, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
 }
@@ -652,7 +664,12 @@ async function setYTStatus(id, status) {
   const item = ytLinks.find(y => y.id === id);
   if (!item) return;
   item.status = status;
-  renderYT();
+  // Update badge in-place — avoids full re-render which causes cross-browser onchange double-fire
+  const row = document.querySelector(`.yt-item-row[data-yt-id="${CSS.escape(id)}"]`);
+  if (row) {
+    const badge = row.querySelector('.status-badge');
+    if (badge) badge.outerHTML = statusBadge(status);
+  }
   try { await DB.updateYTStatus(currentUser.id, id, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
 }
@@ -669,7 +686,7 @@ function renderYT() {
   header.textContent = `Saved videos (${ytLinks.length})`;
   container.innerHTML = ytLinks.map(y => {
     const thumb = y.thumbnailUrl || (y.videoId ? `https://img.youtube.com/vi/${y.videoId}/mqdefault.jpg` : null);
-    return `<div class="yt-item-row">
+    return `<div class="yt-item-row" data-yt-id="${esc(y.id)}">
       <div class="yt-item-top">
         ${thumb
           ? `<img class="yt-thumb" src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
@@ -681,7 +698,7 @@ function renderYT() {
       </div>
       <div class="yt-item-controls">
         <select class="status-sel yt-sel" onchange="setYTStatus('${esc(y.id)}',this.value)">
-          ${Object.keys(STATUS_CONFIG).map(s => `<option ${y.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+          ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${y.status===s?'selected':''}>${esc(s)}</option>`).join('')}
         </select>
         <button class="icon-btn" onclick="removeYT('${esc(y.id)}')" aria-label="Remove"><i class="ti ti-trash"></i></button>
       </div>
