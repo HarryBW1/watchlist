@@ -28,7 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--vv-offset-bottom, 0px));
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
@@ -44,10 +44,9 @@ a  { color: var(--accent); text-decoration: none; }
   position: sticky; top: 0; z-index: 40;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  height: 56px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
   display: flex; align-items: center; gap: 10px;
-  padding-top: env(safe-area-inset-top, 0px);
 }
 .app-header .logo {
   width: 28px; height: 28px; background: var(--accent);
@@ -76,26 +75,14 @@ a  { color: var(--accent); text-decoration: none; }
 
 /* ── Bottom nav ──────────────────────────────────────────────────────────── */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  /* Hardcoded pixel height — no env() so Safari cannot recalculate during scroll */
-  height: 64px;
+  position: fixed;
+  bottom: var(--vv-offset-bottom, 0px);
+  left: 0; right: 0;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--surface); border-top: 1px solid var(--border);
   display: flex; align-items: stretch;
   z-index: 50;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-/* Separate element covers the home indicator area below the nav.
-   It's not inside the nav bar so it can't affect the nav's size. */
-.bottom-nav::after {
-  content: '';
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--surface);
-  z-index: 49;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -459,7 +446,7 @@ select option { background: var(--surface2); }
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--vv-offset-bottom, 0px) + 12px);
   left: 50%; transform: translateX(-50%) translateY(8px);
   background: var(--surface2); border: 1px solid var(--border2);
   color: var(--text); padding: 9px 18px; border-radius: 20px;
@@ -491,7 +478,7 @@ select option { background: var(--surface2); }
 @media (min-width: 800px) {
   .bottom-nav { display: none; }
   body { padding-bottom: 0; }
-  .app-header { height: 60px; padding: 0 24px; }
+  .app-header { min-height: calc(60px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 24px 0; }
   .desktop-tabs { display: flex; }
   main { padding: 20px 24px 0; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
