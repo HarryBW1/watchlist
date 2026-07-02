@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Watchlist</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -132,7 +132,7 @@
       <button class="desktop-tab active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i> Home</button>
       <button class="desktop-tab"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i> Search</button>
       <button class="desktop-tab"        data-tab="watchlist" onclick="switchTab('watchlist')"> <i class="ti ti-bookmark"></i> Watchlist <span class="dt-badge"></span></button>
-      <button class="desktop-tab"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i> YouTube</button>
+      <button class="desktop-tab"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i> YouTube <span class="dt-badge-yt"></span></button>
       <button class="desktop-tab"        data-tab="settings"  onclick="switchTab('settings')">  <i class="ti ti-settings"></i> Settings</button>
     </nav>
     <div class="user-avatar" id="user-avatar" onclick="switchTab('settings')" title="Account">?</div>
@@ -291,7 +291,7 @@
     <button class="nav-btn active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i>Home</button>
     <button class="nav-btn"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i>Search</button>
     <button class="nav-btn"        data-tab="watchlist" onclick="switchTab('watchlist')"> <i class="ti ti-bookmark"></i><span class="mob-badge"></span>List</button>
-    <button class="nav-btn"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i>YouTube</button>
+    <button class="nav-btn"        data-tab="youtube"   onclick="switchTab('youtube')">   <i class="ti ti-brand-youtube"></i><span class="mob-badge-yt"></span>YouTube</button>
     <button class="nav-btn"        data-tab="settings"  onclick="switchTab('settings')">  <i class="ti ti-settings"></i>Settings</button>
   </nav>
 
@@ -312,7 +312,6 @@
 <script src="js/youtube.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/db.js"></script>
-<script src="js/viewport.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
