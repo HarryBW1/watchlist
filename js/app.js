@@ -715,6 +715,26 @@ function renderYT() {
 }
 
 // ── Settings ───────────────────────────────────────────────────────────────
+// ── Pull-to-refresh data reload ────────────────────────────────────────────
+async function doRefresh() {
+  if (!currentUser) return;
+  try {
+    const [wl, yt] = await Promise.all([
+      DB.loadWatchlist(currentUser.id),
+      DB.loadYTLinks(currentUser.id),
+    ]);
+    watchlist = wl;
+    ytLinks   = yt;
+    updateBadge();
+    // Re-render whichever tab is currently visible
+    if (activeTab === 'home')      { homeLoaded = false; loadHome(); }
+    if (activeTab === 'watchlist') renderWatchlist();
+    if (activeTab === 'youtube')   renderYT();
+  } catch (e) {
+    toast('Refresh failed: ' + e.message, 'warn');
+  }
+}
+
 function renderSettings() {
   const el = document.getElementById('settings-email');
   if (el && currentUser) el.textContent = currentUser.email;
@@ -779,6 +799,60 @@ document.addEventListener('DOMContentLoaded', async () => {
       showScreen('auth-screen');
     }
   }, 8000);
+
+  // ── Pull-to-refresh ──────────────────────────────────────────────────────
+  let ptrStartY    = 0;
+  let ptrTriggered = false;
+  const PTR_THRESHOLD = 80; // px of pull needed to trigger
+
+  const ptrEl = document.getElementById('ptr-indicator');
+
+  document.addEventListener('touchstart', e => {
+    // Only start tracking if already scrolled to the very top
+    if (window.scrollY === 0) ptrStartY = e.touches[0].clientY;
+    else ptrStartY = 0;
+    ptrTriggered = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!ptrStartY) return;
+    const pullDist = e.touches[0].clientY - ptrStartY;
+    if (pullDist <= 0) return;
+
+    const clamped = Math.min(pullDist, PTR_THRESHOLD * 1.5);
+    const progress = Math.min(pullDist / PTR_THRESHOLD, 1);
+
+    // Show and move the indicator down as user pulls
+    ptrEl.style.transform = `translateX(-50%) translateY(${clamped * 0.5}px)`;
+    ptrEl.style.opacity   = String(progress);
+    ptrEl.style.display   = 'flex';
+
+    // Spin once threshold is reached
+    ptrEl.classList.toggle('ptr-ready', pullDist >= PTR_THRESHOLD);
+    ptrTriggered = pullDist >= PTR_THRESHOLD;
+  }, { passive: true });
+
+  document.addEventListener('touchend', async () => {
+    if (!ptrStartY) return;
+    ptrStartY = 0;
+
+    if (ptrTriggered) {
+      // Snap indicator to settled position and spin while refreshing
+      ptrEl.style.transform = 'translateX(-50%) translateY(20px)';
+      ptrEl.classList.add('ptr-spinning');
+      await doRefresh();
+    }
+
+    // Hide indicator
+    ptrEl.style.opacity   = '0';
+    ptrEl.style.transform = 'translateX(-50%) translateY(-40px)';
+    setTimeout(() => {
+      ptrEl.style.display = 'none';
+      ptrEl.classList.remove('ptr-ready', 'ptr-spinning');
+    }, 300);
+
+    ptrTriggered = false;
+  }, { passive: true });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 });
