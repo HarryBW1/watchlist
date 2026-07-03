@@ -601,12 +601,20 @@ async function setStatus(tmdbId, status) {
   const item = watchlist.find(w => w.tmdbId === tmdbId);
   if (!item) return;
   item.status = status;
-  // Update badge in-place — avoids full re-render which causes cross-browser onchange double-fire
-  const card = document.querySelector(`.wl-card[data-tmdb="${tmdbId}"]`);
-  if (card) {
-    const badge = card.querySelector('.status-badge');
-    if (badge) badge.outerHTML = statusBadge(status);
+
+  const activeFilter = document.getElementById('wl-st').value;
+  if (activeFilter !== 'all') {
+    // A status filter is active — re-render so the item moves out of view immediately
+    setTimeout(renderWatchlist, 0);
+  } else {
+    // No filter — just update the badge in-place, no DOM teardown needed
+    const card = document.querySelector(`.wl-card[data-tmdb="${tmdbId}"]`);
+    if (card) {
+      const badge = card.querySelector('.status-badge');
+      if (badge) badge.outerHTML = statusBadge(status);
+    }
   }
+
   try { await DB.updateWatchlistStatus(currentUser.id, tmdbId, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
 }
