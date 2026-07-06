@@ -11,10 +11,15 @@ const REGION    = 'GB';
 const PROVIDERS = {
   // ── Major SVoD ────────────────────────────────────────────────────────────
   8:    { name: 'Netflix',               dot: '#e50914', bg: '#1a0000', text: '#ff8080' },
+  1796: { name: 'Netflix',               dot: '#e50914', bg: '#1a0000', text: '#ff8080' }, // Netflix with Ads
+  9:    { name: 'Prime Video',           dot: '#00a8e0', bg: '#001a22', text: '#67d7f5' }, // legacy ID
+  10:   { name: 'Prime Video',           dot: '#00a8e0', bg: '#001a22', text: '#67d7f5' },
   119:  { name: 'Prime Video',           dot: '#00a8e0', bg: '#001a22', text: '#67d7f5' },
+  1825: { name: 'Prime Video',           dot: '#00a8e0', bg: '#001a22', text: '#67d7f5' }, // Prime Video with Ads
   337:  { name: 'Disney+',               dot: '#1a6fff', bg: '#000d26', text: '#7eb8ff' },
   350:  { name: 'Apple TV+',             dot: '#b0b0b0', bg: '#1a1a1a', text: '#d8d8d8' },
   531:  { name: 'Paramount+',            dot: '#1b57e4', bg: '#000d26', text: '#93c5fd' },
+  2100: { name: 'Paramount+',            dot: '#1b57e4', bg: '#000d26', text: '#93c5fd' }, // Paramount+ Apple TV Channel
   // ── HBO / Max ─────────────────────────────────────────────────────────────
   384:  { name: 'Max',                   dot: '#5822b4', bg: '#0d0026', text: '#c4b5fd' },
   1899: { name: 'Max',                   dot: '#5822b4', bg: '#0d0026', text: '#c4b5fd' },
@@ -23,13 +28,13 @@ const PROVIDERS = {
   39:   { name: 'BBC iPlayer',           dot: '#cc0000', bg: '#1a0000', text: '#ff8080' },
   103:  { name: 'Channel 4',             dot: '#6600cc', bg: '#0d0022', text: '#cc88ff' },
   135:  { name: 'ITVX',                  dot: '#00a650', bg: '#001a0d', text: '#6ee7b7' },
-  // ── UK Paid / Niche ───────────────────────────────────────────────────────
+  // ── UK Pay TV ─────────────────────────────────────────────────────────────
   29:   { name: 'Sky Go',                dot: '#0072c9', bg: '#001526', text: '#7eb8ff' },
+  // ── YouTube ───────────────────────────────────────────────────────────────
   188:  { name: 'YouTube Premium',       dot: '#ff0000', bg: '#1a0000', text: '#fca5a5' },
   192:  { name: 'YouTube',               dot: '#ff0000', bg: '#1a0000', text: '#fca5a5' },
   // ── Amazon Channels ───────────────────────────────────────────────────────
-  10:   { name: 'Amazon Video',          dot: '#00a8e0', bg: '#001a22', text: '#67d7f5' },
-  1770: { name: 'MGM+ Amazon Channel',   dot: '#b8972a', bg: '#1a1000', text: '#fcd34d' },
+  1770: { name: 'MGM+',                  dot: '#b8972a', bg: '#1a1000', text: '#fcd34d' },
   // ── Streaming / Other ─────────────────────────────────────────────────────
   2:    { name: 'Apple iTunes',          dot: '#b0b0b0', bg: '#1a1a1a', text: '#d8d8d8' },
   3:    { name: 'Google Play',           dot: '#4285f4', bg: '#001a26', text: '#93c5fd' },
@@ -39,10 +44,10 @@ const PROVIDERS = {
   143:  { name: 'MUBI',                  dot: '#0072b1', bg: '#001526', text: '#7eb8ff' },
   190:  { name: 'BFI Player',            dot: '#e63329', bg: '#1a0000', text: '#fca5a5' },
   239:  { name: 'BFI Player+',           dot: '#e63329', bg: '#1a0000', text: '#fca5a5' },
+  283:  { name: 'Crunchyroll',           dot: '#f47521', bg: '#1a0900', text: '#fdba74' },
   547:  { name: 'Crunchyroll',           dot: '#f47521', bg: '#1a0900', text: '#fdba74' },
   569:  { name: 'Discovery+',            dot: '#2175d9', bg: '#001526', text: '#93c5fd' },
   1715: { name: 'Shudder',               dot: '#cc0000', bg: '#1a0000', text: '#fca5a5' },
-  283:  { name: 'Crunchyroll',           dot: '#f47521', bg: '#1a0900', text: '#fdba74' },
 };
 
 // Deduplicate providers that have multiple IDs mapping to the same service

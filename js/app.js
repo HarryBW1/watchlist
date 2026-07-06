@@ -553,7 +553,7 @@ function renderWatchlist() {
   watchlist.forEach(w => {
     (w.providerIds || []).forEach(pid => {
       const info = TMDB.providerInfo(pid);
-      const name = info.name || `Provider ${pid}`;
+      const name = info.name || 'Other';
       if (!nameToIds.has(name)) nameToIds.set(name, new Set());
       nameToIds.get(name).add(pid);
     });
