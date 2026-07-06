@@ -448,7 +448,9 @@ function buildModalItem(d, mediaType, providers) {
     genres:       (d.genres || []).map(g => g.name),
     runtime:      d.runtime || (d.episode_run_time || [])[0] || null,
     seasons:      d.number_of_seasons || null,
-    providerIds:  providers.map(p => p.provider_id),
+    providerIds:   providers.map(p => p.provider_id),
+    // Store resolved display names — these drive the filter and always match the modal
+    providerNames: [...new Set(providers.map(p => TMDB.providerInfo(p.provider_id).name || p.provider_name))],
     status:       'Want to watch',
   };
 }
@@ -538,6 +540,20 @@ async function removeFromWL(tmdbId) {
 }
 
 // ── Watchlist ──────────────────────────────────────────────────────────────
+// Returns the deduplicated display names for a watchlist item's providers.
+// Prefers providerNames (stored on new items) and falls back to resolving
+// from providerIds (for items saved before providerNames was added).
+function getProviderNames(item) {
+  if (item.providerNames && item.providerNames.length) {
+    return item.providerNames;
+  }
+  // Fallback: resolve from stored IDs
+  const names = [...new Set(
+    (item.providerIds || []).map(pid => TMDB.providerInfo(pid).name).filter(Boolean)
+  )];
+  return names;
+}
+
 function renderWatchlist() {
   const stFilter   = document.getElementById('wl-st').value;
   const pfFilter   = document.getElementById('wl-pf').value;
@@ -545,26 +561,19 @@ function renderWatchlist() {
   const grid       = document.getElementById('wl-grid');
   const pfSelect   = document.getElementById('wl-pf');
 
-  // Build provider dropdown grouped by display NAME (not ID), so providers
-  // with multiple TMDB IDs (e.g. BBC iPlayer = 38 & 39, Max = 384 & 1899)
-  // appear as a single option. Falls back to TMDB's own provider_name for
-  // any provider not in our lookup table.
-  const nameToIds = new Map(); // display name → Set of provider IDs
+  // Build dropdown from resolved provider names — these match exactly what the modal shows.
+  // Falls back to resolving names from IDs for items saved before providerNames was added.
+  const allNames = new Set();
   watchlist.forEach(w => {
-    (w.providerIds || []).forEach(pid => {
-      const info = TMDB.providerInfo(pid);
-      const name = info.name || 'Other';
-      if (!nameToIds.has(name)) nameToIds.set(name, new Set());
-      nameToIds.get(name).add(pid);
-    });
+    const names = getProviderNames(w);
+    names.forEach(n => allNames.add(n));
   });
 
-  // Rebuild dropdown preserving current selection
   const currentPf = pfSelect.value;
   pfSelect.innerHTML = '<option value="all">All platforms</option>';
-  [...nameToIds.keys()].sort().forEach(name => {
+  [...allNames].sort().forEach(name => {
     const opt = document.createElement('option');
-    opt.value       = name;           // use name as value — groups multi-ID providers
+    opt.value = name;
     opt.textContent = name;
     if (name === currentPf) opt.selected = true;
     pfSelect.appendChild(opt);
@@ -581,13 +590,10 @@ function renderWatchlist() {
     <div class="stat"><span class="stat-n">${watching}</span><span class="stat-l">Watching</span></div>
     <div class="stat"><span class="stat-n">${finished}</span><span class="stat-l">Finished</span></div>`;
 
-  // Match by name — catches all IDs that map to the same provider name
-  const activeIds = pfFilter !== 'all' ? nameToIds.get(pfFilter) || new Set() : null;
   const filtered = watchlist.filter(w => {
     const matchStatus   = stFilter   === 'all' || w.status    === stFilter;
     const matchType     = typeFilter === 'all' || w.mediaType === typeFilter;
-    const matchPlatform = activeIds  === null  ||
-                          (w.providerIds || []).some(pid => activeIds.has(pid));
+    const matchPlatform = pfFilter   === 'all' || getProviderNames(w).includes(pfFilter);
     return matchStatus && matchType && matchPlatform;
   });
 

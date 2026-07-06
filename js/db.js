@@ -41,7 +41,8 @@ async function loadWatchlist(userId) {
     genres:       row.genres || [],
     runtime:      row.runtime,
     seasons:      row.seasons,
-    providerIds:  row.provider_ids || [],
+    providerIds:   row.provider_ids    || [],
+    providerNames: row.provider_names  || [],
     status:       row.status,
     addedAt:      new Date(row.added_at).getTime(),
   }));
@@ -63,7 +64,8 @@ async function upsertWatchlistItem(userId, item) {
       genres:        item.genres,
       runtime:       item.runtime,
       seasons:       item.seasons,
-      provider_ids:  item.providerIds,
+      provider_ids:   item.providerIds,
+      provider_names: item.providerNames || [],
       status:        item.status,
       added_at:      new Date(item.addedAt).toISOString(),
     }, { onConflict: 'user_id,tmdb_id' });
