@@ -294,11 +294,11 @@ async function loadHome() {
       TMDB.getPopularTV(),
     ]);
     container.innerHTML = `
-      ${homeSection('🔥 Trending this week',  trending.slice(0, 12))}
-      ${homeSection('🎬 In cinemas now',       nowPlaying.slice(0, 10))}
-      ${homeSection('📺 Series on air',        onAir.slice(0, 10))}
-      ${homeSection('🎥 Popular films',        popularMovies.slice(0, 10))}
-      ${homeSection('📡 Popular series',       popularTV.slice(0, 10))}
+      ${homeSection('Trending this week',  trending.slice(0, 12))}
+      ${homeSection('In cinemas now',       nowPlaying.slice(0, 10))}
+      ${homeSection('Series on air',        onAir.slice(0, 10))}
+      ${homeSection('Popular films',        popularMovies.slice(0, 10))}
+      ${homeSection('Popular series',       popularTV.slice(0, 10))}
     `;
     homeLoaded = true;
   } catch {
