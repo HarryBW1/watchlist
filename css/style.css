@@ -49,7 +49,7 @@ a  { color: var(--accent); text-decoration: none; }
   display: flex; align-items: center; gap: 10px;
 }
 .app-header .logo {
-  width: 28px; height: 28px; background: var(--accent);
+  width: 28px; height: 28px;
   border-radius: 8px; display: flex; align-items: center;
   justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0;
 }
@@ -504,7 +504,7 @@ select option { background: var(--surface2); }
   gap: 16px; z-index: 300;
 }
 #loading-screen .logo-lg {
-  width: 56px; height: 56px; background: var(--accent); border-radius: 16px;
+  width: 56px; height: 56px; border-radius: 16px;
   display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;
 }
 #loading-label { font-size: 14px; color: var(--muted); }
@@ -521,7 +521,7 @@ select option { background: var(--surface2); }
   border-radius: 20px; padding: 32px 28px;
 }
 .auth-logo {
-  width: 44px; height: 44px; background: var(--accent); border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; color: #fff; margin: 0 auto 20px;
 }
@@ -732,11 +732,11 @@ select option { background: var(--surface2); }
 
 #ptr-indicator.ptr-spinning i {
   animation: ptr-spin 0.6s linear infinite;
+  
+}
 
 .logo img, .logo-lg img, .auth-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-  
 }
