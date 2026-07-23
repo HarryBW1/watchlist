@@ -294,11 +294,11 @@ async function loadHome() {
       TMDB.getPopularTV(),
     ]);
     container.innerHTML = `
-      ${homeSection('Trending this week',  trending.slice(0, 12))}
-      ${homeSection('In cinemas now',       nowPlaying.slice(0, 10))}
-      ${homeSection('Series on air',        onAir.slice(0, 10))}
-      ${homeSection('Popular films',        popularMovies.slice(0, 10))}
-      ${homeSection('Popular series',       popularTV.slice(0, 10))}
+      ${homeSection('🔥 Trending this week',  trending.slice(0, 12))}
+      ${homeSection('🎬 In cinemas now',       nowPlaying.slice(0, 10))}
+      ${homeSection('📺 Series on air',        onAir.slice(0, 10))}
+      ${homeSection('🎥 Popular films',        popularMovies.slice(0, 10))}
+      ${homeSection('📡 Popular series',       popularTV.slice(0, 10))}
     `;
     homeLoaded = true;
   } catch {
@@ -763,6 +763,77 @@ async function doRefresh() {
   }
 }
 
+// ── Export / Import ────────────────────────────────────────────────────────
+function exportData() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version:    1,
+    watchlist,
+    ytLinks,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  a.href     = url;
+  a.download = `watchlist-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Watchlist exported', 'success');
+}
+
+async function importData(event) {
+  const file     = event.target.files[0];
+  const statusEl = document.getElementById('import-status');
+  if (!file) return;
+
+  // Reset the input so the same file can be re-imported if needed
+  event.target.value = '';
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Reading file…';
+
+  try {
+    const text    = await file.text();
+    const payload = JSON.parse(text);
+
+    if (!payload.watchlist || !Array.isArray(payload.watchlist)) {
+      throw new Error('Invalid file — does not look like a Watchlist export.');
+    }
+
+    const importedWL = payload.watchlist  || [];
+    const importedYT = payload.ytLinks    || [];
+
+    // Merge — skip items already in the list (matched by tmdbId / yt id)
+    let addedWL = 0;
+    let addedYT = 0;
+
+    for (const item of importedWL) {
+      if (!watchlist.some(w => w.tmdbId === item.tmdbId)) {
+        watchlist.push(item);
+        addedWL++;
+        try { await DB.upsertWatchlistItem(currentUser.id, item); } catch {}
+      }
+    }
+
+    for (const link of importedYT) {
+      if (!ytLinks.some(y => y.id === link.id)) {
+        ytLinks.push(link);
+        addedYT++;
+        try { await DB.upsertYTLink(currentUser.id, link); } catch {}
+      }
+    }
+
+    updateBadge();
+    statusEl.style.color = 'var(--success)';
+    statusEl.textContent = `Imported ${addedWL} watchlist item${addedWL !== 1 ? 's' : ''} and ${addedYT} YouTube link${addedYT !== 1 ? 's' : ''}.${addedWL + addedYT === 0 ? ' Nothing new to add.' : ''}`;
+    toast('Import complete', 'success');
+
+  } catch (e) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = e.message || 'Failed to read file.';
+  }
+}
+
 function renderSettings() {
   const el = document.getElementById('settings-email');
   if (el && currentUser) el.textContent = currentUser.email;
@@ -792,7 +863,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Auth.initSupabase();
 
   // Default to sign-up tab (better for new users)
-  setAuthTab('login');
+  setAuthTab('signup');
   showScreen('loading-screen');
   document.getElementById('loading-label').textContent = 'Checking session…';
 
@@ -904,3 +975,5 @@ window.addYT                = addYT;
 window.removeYT             = removeYT;
 window.setYTStatus          = setYTStatus;
 window.renderSettings       = renderSettings;
+window.exportData           = exportData;
+window.importData           = importData;
