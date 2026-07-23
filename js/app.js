@@ -143,7 +143,7 @@ async function handleSignOut() {
   try { await Auth.signOut(); } catch {}
   currentUser = null; watchlist = []; ytLinks = []; homeLoaded = false;
   // Reset to sign-up tab for next visitor
-  setAuthTab('signup');
+  setAuthTab('login');
   showScreen('auth-screen');
 }
 
