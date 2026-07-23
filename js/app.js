@@ -863,7 +863,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Auth.initSupabase();
 
   // Default to sign-up tab (better for new users)
-  setAuthTab('signup');
+  setAuthTab('login');
   showScreen('loading-screen');
   document.getElementById('loading-label').textContent = 'Checking session…';
 
