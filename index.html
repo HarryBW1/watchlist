@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Watchlist</title>
@@ -9,7 +8,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Watchlist" />
   <meta name="theme-color" content="#0f0f14" />
-  <link rel="icon" href="icons/icon-favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
@@ -24,7 +22,7 @@
      SCREEN 0 — Loading
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="loading-screen">
-  <div class="logo-lg"><img src="icons/in-app-icon.png" alt="Watchlist logo" /></div>
+  <div class="logo-lg"><i class="ti ti-player-play"></i></div>
   <span id="loading-label">Loading…</span>
 </div>
 
@@ -50,7 +48,7 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="auth-screen" style="display:none">
   <div class="auth-card">
-    <div class="auth-logo"><img src="icons/in-app-icon.png" alt="Watchlist logo" /></div>
+    <div class="auth-logo"><i class="ti ti-player-play"></i></div>
     <h1>Watchlist</h1>
     <p class="auth-sub">Track everything you want to watch, synced across all your devices.</p>
 
@@ -133,7 +131,7 @@
   </div>
 
   <header class="app-header">
-    <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
+    <div class="logo" aria-hidden="true"><i class="ti ti-player-play"></i></div>
     <h1>Watchlist</h1>
     <nav class="desktop-tabs">
       <button class="desktop-tab active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i> Home</button>
@@ -287,6 +285,28 @@
           and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
           to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
         </p>
+      </div>
+
+      <div class="settings-section">
+        <h2><i class="ti ti-database-export"></i> Watchlist Data</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Export your watchlist and YouTube links as a JSON file, or import a previously exported file to restore or merge your data.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="primary-btn" onclick="exportData()" style="justify-content:flex-start">
+            <i class="ti ti-download"></i> Export watchlist
+          </button>
+
+          <div>
+            <label for="import-file" class="primary-btn" style="cursor:pointer;justify-content:flex-start;display:flex;align-items:center;gap:6px;box-sizing:border-box;width:100%">
+              <i class="ti ti-upload"></i> Import watchlist
+            </label>
+            <input type="file" id="import-file" accept=".json" onchange="importData(event)" style="display:none" />
+          </div>
+
+          <p id="import-status" style="font-size:13px;min-height:18px;color:var(--muted)"></p>
+        </div>
       </div>
 
     </section>
