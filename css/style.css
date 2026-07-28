@@ -74,10 +74,12 @@ a  { color: var(--accent); text-decoration: none; }
   display: flex; align-items: center; gap: 10px;
 }
 .app-header .logo {
-  width: 28px; height: 28px; background: var(--accent);
+  width: 28px; height: 28px;
   border-radius: 8px; display: flex; align-items: center;
   justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0;
+  overflow: hidden;
 }
+.app-header .logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .app-header h1 { flex: 1; }
 
 /* ── Desktop tabs ────────────────────────────────────────────────────────── */
@@ -526,9 +528,11 @@ select option { background: var(--surface2); }
   gap: 16px; z-index: 300;
 }
 #loading-screen .logo-lg {
-  width: 56px; height: 56px; background: var(--accent); border-radius: 16px;
+  width: 56px; height: 56px; border-radius: 16px;
   display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;
+  overflow: hidden;
 }
+#loading-screen .logo-lg img { width: 100%; height: 100%; object-fit: contain; display: block; }
 #loading-label { font-size: 14px; color: var(--muted); }
 
 /* ── Auth screen ─────────────────────────────────────────────────────────── */
@@ -543,10 +547,12 @@ select option { background: var(--surface2); }
   border-radius: 20px; padding: 32px 28px;
 }
 .auth-logo {
-  width: 44px; height: 44px; background: var(--accent); border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; color: #fff; margin: 0 auto 20px;
+  overflow: hidden;
 }
+.auth-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .auth-card h1 { text-align: center; font-size: 1.2rem; margin-bottom: 6px; }
 .auth-card .auth-sub { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 24px; }
 .auth-tabs { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
