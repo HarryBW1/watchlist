@@ -12,6 +12,7 @@
   --hint:      #55556a;
   --accent:    #6c63ff;
   --accent-dim:#3d3880;
+  --accent-text: #ffffff;
   --success:   #22c55e;
   --warn:      #f59e0b;
   --danger:    #ef4444;
@@ -19,6 +20,30 @@
   --radius-sm: 8px;
   --nav-h:     64px;
   font-size: 16px;
+}
+
+/* ── Light mode ──────────────────────────────────────────────────────────── */
+html[data-theme="light"] {
+  --bg:        #f4f4f7;
+  --surface:   #ffffff;
+  --surface2:  #eeeef3;
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.14);
+  --text:      #14141a;
+  --muted:     #5c5c70;
+  --hint:      #9494a8;
+}
+
+/* ── Accent colour themes ────────────────────────────────────────────────── */
+/* Purple (default) needs no override — matches :root already */
+html[data-accent="orange"] {
+  --accent:     #ce712e;
+  --accent-dim: #7a4419;
+}
+html[data-accent="blue"] {
+  --accent:      #8adae0;
+  --accent-dim:  #3f7f84;
+  --accent-text: #0a2a2c; /* light accent needs dark text for contrast on accent-coloured buttons */
 }
 
 html { background: var(--bg); overscroll-behavior-y: none; }
@@ -49,7 +74,7 @@ a  { color: var(--accent); text-decoration: none; }
   display: flex; align-items: center; gap: 10px;
 }
 .app-header .logo {
-  width: 28px; height: 28px;
+  width: 28px; height: 28px; background: var(--accent);
   border-radius: 8px; display: flex; align-items: center;
   justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0;
 }
@@ -67,8 +92,8 @@ a  { color: var(--accent); text-decoration: none; }
 .desktop-tab i { font-size: 16px; }
 .desktop-tab.active { background: var(--surface); color: var(--text); border-color: var(--border); }
 .desktop-tab:hover:not(.active) { color: var(--text); }
-.dt-badge, .dt-badge-yt {
-  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+.dt-badge {
+  background: var(--accent); color: var(--accent-text); font-size: 10px; font-weight: 600;
   min-width: 18px; height: 18px; border-radius: 9px;
   display: none; align-items: center; justify-content: center; padding: 0 4px;
 }
@@ -93,9 +118,9 @@ a  { color: var(--accent); text-decoration: none; }
 .nav-btn i { font-size: 22px; flex-shrink: 0; }
 .nav-btn.active { color: var(--accent); }
 .nav-btn:hover:not(.active) { color: var(--muted); }
-.mob-badge, .mob-badge-yt {
+.mob-badge {
   position: absolute; top: 4px; right: calc(50% - 18px);
-  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+  background: var(--accent); color: var(--accent-text); font-size: 10px; font-weight: 600;
   min-width: 18px; height: 18px; border-radius: 9px;
   display: none; align-items: center; justify-content: center; padding: 0 4px;
 }
@@ -306,7 +331,7 @@ select option { background: var(--surface2); }
 .modal-add-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
   padding: 12px; border-radius: var(--radius-sm);
-  background: var(--accent); color: #fff; border: none;
+  background: var(--accent); color: var(--accent-text); border: none;
   font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer;
   transition: opacity .15s;
 }
@@ -378,7 +403,7 @@ select option { background: var(--surface2); }
 .primary-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 20px; border-radius: var(--radius-sm);
-  background: var(--accent); color: #fff; border: none;
+  background: var(--accent); color: var(--accent-text); border: none;
   font-size: 0.875rem; font-weight: 500; font-family: inherit;
   cursor: pointer; transition: opacity .15s; white-space: nowrap;
 }
@@ -451,10 +476,7 @@ select option { background: var(--surface2); }
   background: var(--surface2); border: 1px solid var(--border2);
   color: var(--text); padding: 9px 18px; border-radius: 20px;
   font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
-  transition: opacity .25s, transform .25s; z-index: 200;
-  white-space: normal; word-break: break-word;
-  max-width: calc(100vw - 48px);
-  text-align: center;
+  transition: opacity .25s, transform .25s; white-space: nowrap; z-index: 200;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.toast-success { border-color: rgba(34,197,94,0.4); color: #86efac; }
@@ -504,7 +526,7 @@ select option { background: var(--surface2); }
   gap: 16px; z-index: 300;
 }
 #loading-screen .logo-lg {
-  width: 56px; height: 56px; border-radius: 16px;
+  width: 56px; height: 56px; background: var(--accent); border-radius: 16px;
   display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;
 }
 #loading-label { font-size: 14px; color: var(--muted); }
@@ -521,7 +543,7 @@ select option { background: var(--surface2); }
   border-radius: 20px; padding: 32px 28px;
 }
 .auth-logo {
-  width: 44px; height: 44px; border-radius: 12px;
+  width: 44px; height: 44px; background: var(--accent); border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; color: #fff; margin: 0 auto 20px;
 }
@@ -538,7 +560,7 @@ select option { background: var(--surface2); }
 #auth-error { font-size: 13px; color: var(--danger); min-height: 18px; margin-bottom: 4px; text-align: center; }
 #auth-submit-btn {
   width: 100%; padding: 12px; border-radius: var(--radius-sm);
-  background: var(--accent); color: #fff; border: none;
+  background: var(--accent); color: var(--accent-text); border: none;
   font-size: 15px; font-weight: 500; font-family: inherit; cursor: pointer;
   transition: opacity .15s; margin-bottom: 16px;
 }
@@ -690,7 +712,7 @@ select option { background: var(--surface2); }
 #onboarding-error { font-size: 13px; color: var(--danger); min-height: 18px; }
 #onboarding-key-btn {
   width: 100%; padding: 12px; border-radius: var(--radius-sm);
-  background: var(--accent); color: #fff; border: none;
+  background: var(--accent); color: var(--accent-text); border: none;
   font-size: 15px; font-weight: 500; font-family: inherit;
   cursor: pointer; transition: opacity .15s;
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -701,42 +723,39 @@ select option { background: var(--surface2); }
   text-align: center; margin-top: 14px; font-size: 12px; color: var(--hint);
 }
 
-/* ── Pull-to-refresh indicator ───────────────────────────────────────────── */
-#ptr-indicator {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-40px);
-  width: 36px; height: 36px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  z-index: 999;
-  transition: opacity .2s, transform .2s;
-  color: var(--accent);
-  font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+/* ── Theme controls (Settings → Appearance) ─────────────────────────────── */
+.theme-mode-row {
+  display: flex; gap: 8px;
 }
-
-#ptr-indicator.ptr-ready i {
-  color: var(--accent);
+.theme-mode-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: var(--radius-sm);
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; font-weight: 500; font-family: inherit;
+  cursor: pointer; transition: border-color .15s, color .15s;
 }
-
-@keyframes ptr-spin {
-  to { transform: rotate(360deg); }
+.theme-mode-btn.active {
+  border-color: var(--accent); color: var(--text);
 }
+.theme-mode-btn i { font-size: 16px; }
 
-#ptr-indicator.ptr-spinning i {
-  animation: ptr-spin 0.6s linear infinite;
-  
+.theme-swatch-row {
+  display: flex; gap: 12px;
 }
-
-.logo img, .logo-lg img, .auth-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.theme-swatch {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 2px solid var(--border); cursor: pointer;
+  position: relative; transition: transform .15s, border-color .15s;
+  padding: 0;
+}
+.theme-swatch:hover { transform: scale(1.08); }
+.theme-swatch.active {
+  border-color: var(--text);
+}
+.theme-swatch.active::after {
+  content: '✓';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
