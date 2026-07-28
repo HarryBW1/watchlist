@@ -73,6 +73,13 @@ a  { color: var(--accent); text-decoration: none; }
   min-height: calc(56px + env(safe-area-inset-top, 0px));
   display: flex; align-items: center; gap: 10px;
 }
+.brand-link {
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: none; padding: 0; margin: 0;
+  cursor: pointer; font: inherit; color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.brand-link:hover .logo { opacity: 0.85; }
 .app-header .logo {
   width: 28px; height: 28px;
   border-radius: 8px; display: flex; align-items: center;
@@ -358,6 +365,7 @@ select option { background: var(--surface2); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden;
   display: flex; flex-direction: column;
+  position: relative;
 }
 .wl-card-poster {
   position: relative; aspect-ratio: 16/9; background: var(--surface2); overflow: hidden;
@@ -797,4 +805,107 @@ select option { background: var(--surface2); }
 
 #ptr-indicator.ptr-spinning i {
   animation: ptr-spin 0.6s linear infinite;
+}
+
+/* ── Watchlist view toggle ───────────────────────────────────────────────── */
+.view-toggle-row {
+  display: flex; gap: 6px; margin-bottom: 12px;
+}
+.view-toggle-btn {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; font-size: 17px; transition: border-color .15s, color .15s;
+}
+.view-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+
+/* ── Grid view (default) — unchanged card look ──────────────────────────── */
+#wl-grid.view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* ── List view ───────────────────────────────────────────────────────────── */
+#wl-grid.view-list {
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.wl-card.list-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hero backdrop spans the full width of the card, like modal-hero */
+.list-card .wl-card-hero {
+  position: relative;
+  height: 100px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.list-card .wl-card-hero img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.list-card .wl-card-hero-grad {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, var(--surface) 100%);
+}
+
+/* Poster overlaps the bottom of the hero, like modal-poster-row */
+.list-card .list-body {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px 12px;
+  margin-top: -40px;
+  position: relative;
+  z-index: 2;
+}
+.list-card .list-poster {
+  width: 64px; height: 96px; border-radius: 8px; object-fit: cover;
+  border: 2px solid var(--surface); flex-shrink: 0; background: var(--surface2);
+}
+.list-card .list-poster-ph {
+  width: 64px; height: 96px; border-radius: 8px; flex-shrink: 0;
+  background: var(--surface2); display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface);
+}
+.list-card .list-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  padding-top: 44px;
+}
+.list-card .wl-card-title { white-space: normal; }
+.list-card .status-sel { max-width: 220px; }
+
+.list-card .wl-remove-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+}
+
+/* ── Drag handle & reordering ────────────────────────────────────────────── */
+.drag-handle {
+  position: absolute;
+  top: 8px; left: 8px; z-index: 3;
+  width: 28px; height: 28px; border-radius: 6px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: grab;
+  touch-action: none; /* required so touch drag doesn't scroll the page */
+}
+.drag-handle:active { cursor: grabbing; }
+
+.list-card .drag-handle {
+  position: static;
+  width: 28px; height: 28px; flex-shrink: 0;
+  align-self: center;
+  margin-left: 4px;
+  background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+}
+
+.wl-card.dragging {
+  opacity: 0.4;
+}
+.wl-card.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
 }
