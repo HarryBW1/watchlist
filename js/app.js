@@ -834,13 +834,65 @@ async function importData(event) {
   }
 }
 
+// ── Theme (mode + accent) ───────────────────────────────────────────────────
+function setThemeMode(mode) {
+  document.documentElement.setAttribute('data-theme', mode);
+  localStorage.setItem('wl_theme_mode', mode);
+  syncThemeControls();
+}
+
+function setThemeAccent(accent) {
+  if (accent === 'purple') {
+    document.documentElement.removeAttribute('data-accent'); // purple is the default, no override needed
+  } else {
+    document.documentElement.setAttribute('data-accent', accent);
+  }
+  localStorage.setItem('wl_theme_accent', accent);
+  syncThemeControls();
+}
+
+function syncThemeControls() {
+  const mode   = localStorage.getItem('wl_theme_mode')   || 'dark';
+  const accent = localStorage.getItem('wl_theme_accent') || 'purple';
+  document.querySelectorAll('.theme-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+  document.querySelectorAll('.theme-swatch').forEach(b =>
+    b.classList.toggle('active', b.dataset.accent === accent));
+}
+
+function applyStoredTheme() {
+  const mode   = localStorage.getItem('wl_theme_mode')   || 'dark';
+  const accent = localStorage.getItem('wl_theme_accent') || 'purple';
+  document.documentElement.setAttribute('data-theme', mode);
+  if (accent !== 'purple') document.documentElement.setAttribute('data-accent', accent);
+}
+
+// ── Password reset ───────────────────────────────────────────────────────────
+async function sendPasswordReset() {
+  const statusEl = document.getElementById('reset-password-status');
+  if (!currentUser) return;
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Sending…';
+  try {
+    await Auth.sendPasswordReset(currentUser.email);
+    statusEl.style.color = 'var(--success)';
+    statusEl.textContent = `Reset email sent to ${currentUser.email}. Check your inbox.`;
+  } catch (e) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = e.message || 'Failed to send reset email.';
+  }
+}
+
 function renderSettings() {
   const el = document.getElementById('settings-email');
   if (el && currentUser) el.textContent = currentUser.email;
+  syncThemeControls();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  applyStoredTheme(); // apply immediately to avoid a flash of the wrong theme
+
   // ── Guard: Supabase CDN must have loaded ───────────────────────────────
   if (typeof window.supabase === 'undefined') {
     showScreen('error-screen');
