@@ -248,12 +248,37 @@
     <section id="tab-settings" class="tab-panel">
 
       <div class="settings-section">
+        <h2><i class="ti ti-palette"></i> Appearance</h2>
+
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Mode</p>
+        <div class="theme-mode-row">
+          <button class="theme-mode-btn" data-mode="dark" onclick="setThemeMode('dark')">
+            <i class="ti ti-moon"></i> Dark
+          </button>
+          <button class="theme-mode-btn" data-mode="light" onclick="setThemeMode('light')">
+            <i class="ti ti-sun"></i> Light
+          </button>
+        </div>
+
+        <p style="font-size:13px;color:var(--muted);margin:16px 0 10px">Accent colour</p>
+        <div class="theme-swatch-row">
+          <button class="theme-swatch" data-accent="purple" onclick="setThemeAccent('purple')" style="background:#6c63ff" aria-label="Purple"></button>
+          <button class="theme-swatch" data-accent="orange" onclick="setThemeAccent('orange')" style="background:#ce712e" aria-label="Orange"></button>
+          <button class="theme-swatch" data-accent="blue"   onclick="setThemeAccent('blue')"   style="background:#8adae0" aria-label="Light blue"></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <h2><i class="ti ti-user"></i> Account</h2>
         <div class="settings-row">
           <label>Signed in as</label>
           <span class="settings-email" id="settings-email"></span>
         </div>
-        <div style="margin-top:14px">
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <button class="primary-btn" onclick="sendPasswordReset()">
+            <i class="ti ti-key"></i> Reset password
+          </button>
+          <p id="reset-password-status" style="font-size:13px;min-height:18px;color:var(--muted)"></p>
           <button class="danger-btn" onclick="handleSignOut()">
             <i class="ti ti-logout"></i> Sign out
           </button>
