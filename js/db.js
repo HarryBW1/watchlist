@@ -27,7 +27,8 @@ async function loadWatchlist(userId) {
     .from('watchlist')
     .select('*')
     .eq('user_id', userId)
-    .order('added_at', { ascending: false });
+    .order('sort_order', { ascending: true })
+    .order('added_at',   { ascending: false });
   if (error) throw error;
   return (data || []).map(row => ({
     tmdbId:       row.tmdb_id,
@@ -45,6 +46,7 @@ async function loadWatchlist(userId) {
     providerNames: row.provider_names  || [],
     status:       row.status,
     addedAt:      new Date(row.added_at).getTime(),
+    sortOrder:    row.sort_order ?? 0,
   }));
 }
 
@@ -68,6 +70,7 @@ async function upsertWatchlistItem(userId, item) {
       provider_names: item.providerNames || [],
       status:        item.status,
       added_at:      new Date(item.addedAt).toISOString(),
+      sort_order:    item.sortOrder ?? 0,
     }, { onConflict: 'user_id,tmdb_id' });
   if (error) throw error;
 }
@@ -82,6 +85,13 @@ async function deleteWatchlistItem(userId, tmdbId) {
 async function updateWatchlistStatus(userId, tmdbId, status) {
   const { error } = await sb()
     .from('watchlist').update({ status })
+    .eq('user_id', userId).eq('tmdb_id', tmdbId);
+  if (error) throw error;
+}
+
+async function updateWatchlistOrder(userId, tmdbId, sortOrder) {
+  const { error } = await sb()
+    .from('watchlist').update({ sort_order: sortOrder })
     .eq('user_id', userId).eq('tmdb_id', tmdbId);
   if (error) throw error;
 }
@@ -145,6 +155,6 @@ async function updateYTStatus(userId, id, status) {
 
 window.DB = {
   loadProfile, saveProfile,
-  loadWatchlist, upsertWatchlistItem, deleteWatchlistItem, updateWatchlistStatus,
+  loadWatchlist, upsertWatchlistItem, deleteWatchlistItem, updateWatchlistStatus, updateWatchlistOrder,
   loadYTLinks, upsertYTLink, deleteYTLink, updateYTStatus,
 };

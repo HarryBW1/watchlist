@@ -505,7 +505,8 @@ function closeModal() {
 
 async function addToWL() {
   if (!currentModal || isInWL(currentModal.tmdbId)) return;
-  const item = { ...currentModal, addedAt: Date.now() };
+  // Negative timestamp means new items naturally sort before older ones
+  const item = { ...currentModal, addedAt: Date.now(), sortOrder: -Date.now() };
   watchlist.unshift(item);
   updateBadge();
   document.querySelectorAll(`[data-id="${item.tmdbId}"]`).forEach(c => c.classList.add('in-watchlist'));
@@ -597,6 +598,12 @@ function renderWatchlist() {
     return matchStatus && matchType && matchPlatform;
   });
 
+  const viewMode = localStorage.getItem('wl_view_mode') || 'grid';
+  grid.classList.toggle('view-grid', viewMode === 'grid');
+  grid.classList.toggle('view-list', viewMode === 'list');
+  document.querySelectorAll('.view-toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === viewMode));
+
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <i class="ti ti-bookmark-off"></i>
@@ -605,10 +612,46 @@ function renderWatchlist() {
     return;
   }
 
+  // Reordering is only meaningful with no filters active — otherwise a drag
+  // would silently reorder a subset in a way that doesn't reflect visually.
+  const reorderable = stFilter === 'all' && pfFilter === 'all' && typeFilter === 'all';
+
   grid.innerHTML = filtered.map(w => {
     const poster = TMDB.posterUrl(w.posterPath, 'w342');
     const kind   = w.mediaType === 'movie' ? 'Film' : 'Series';
+
+    const dragHandle = reorderable
+      ? `<div class="drag-handle" draggable="true" aria-label="Drag to reorder"><i class="ti ti-grip-vertical"></i></div>`
+      : '';
+
+    if (viewMode === 'list') {
+      const backdrop = TMDB.backdropUrl(w.backdropPath, 'w300');
+      return `<div class="wl-card list-card" data-tmdb="${w.tmdbId}">
+        <div class="wl-card-hero" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
+          ${backdrop ? `<img src="${esc(backdrop)}" alt="" loading="lazy">` : ''}
+          <div class="wl-card-hero-grad"></div>
+        </div>
+        <button class="wl-remove-btn" onclick="event.stopPropagation();removeFromWL(${w.tmdbId})"><i class="ti ti-x"></i></button>
+        <div class="list-body">
+          ${poster
+            ? `<img class="list-poster" src="${esc(poster)}" alt="${esc(w.title)}" loading="lazy" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">`
+            : `<div class="list-poster-ph"><i class="ti ti-device-tv"></i></div>`}
+          <div class="list-info">
+            <h3 class="wl-card-title">${esc(w.title)}</h3>
+            <p class="wl-card-meta">${w.year || ''}${w.year ? ' · ' : ''}${kind}</p>
+            ${statusBadge(w.status)}
+            <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
+              ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+            </select>
+          </div>
+          ${dragHandle}
+        </div>
+      </div>`;
+    }
+
+    // Grid view (default)
     return `<div class="wl-card" data-tmdb="${w.tmdbId}">
+      ${dragHandle}
       <div class="wl-card-poster" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
         ${poster ? `<img src="${esc(poster)}" alt="${esc(w.title)}" loading="lazy">` : `<div class="wl-poster-ph"><i class="ti ti-device-tv"></i></div>`}
         <button class="wl-remove-btn" onclick="event.stopPropagation();removeFromWL(${w.tmdbId})"><i class="ti ti-x"></i></button>
@@ -623,6 +666,119 @@ function renderWatchlist() {
       </div>
     </div>`;
   }).join('');
+
+  if (reorderable) attachDragReorder(grid);
+}
+
+function setWatchlistView(mode) {
+  localStorage.setItem('wl_view_mode', mode);
+  renderWatchlist();
+}
+
+// ── Drag-to-reorder (Pointer Events — works on touch/iOS and mouse/desktop) ──
+// Native HTML5 drag-and-drop does not work on iOS touch, so this uses
+// pointerdown/pointermove/pointerup on the drag handle instead, manually
+// tracking position and swapping list order as the card is dragged.
+let dragState = null;
+
+function attachDragReorder(container) {
+  container.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', onDragHandleDown);
+  });
+}
+
+function onDragHandleDown(e) {
+  e.preventDefault();
+  const card = e.currentTarget.closest('.wl-card');
+  if (!card) return;
+
+  const container = card.parentElement;
+  const cards = [...container.querySelectorAll('.wl-card')];
+
+  dragState = {
+    card,
+    container,
+    cards,
+    startY: e.clientY,
+    startX: e.clientX,
+    cardStartRect: card.getBoundingClientRect(),
+    pointerId: e.pointerId,
+  };
+
+  card.classList.add('dragging');
+  card.style.position = 'relative';
+  card.style.zIndex = '50';
+  card.style.pointerEvents = 'none'; // let drop-target detection see through to cards beneath
+
+  e.currentTarget.setPointerCapture(e.pointerId);
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragUp);
+  document.addEventListener('pointercancel', onDragUp);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  const dy = e.clientY - dragState.startY;
+  const dx = e.clientX - dragState.startX;
+  dragState.card.style.transform = `translate(${dx}px, ${dy}px)`;
+
+  // Find which other card the pointer is currently over
+  const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.wl-card');
+  dragState.cards.forEach(c => c.classList.remove('drag-over'));
+  if (target && target !== dragState.card && dragState.cards.includes(target)) {
+    target.classList.add('drag-over');
+    dragState.hoverTarget = target;
+  } else {
+    dragState.hoverTarget = null;
+  }
+}
+
+function onDragUp(e) {
+  if (!dragState) return;
+  const { card, hoverTarget, cards } = dragState;
+
+  card.classList.remove('dragging');
+  card.style.position = '';
+  card.style.zIndex = '';
+  card.style.pointerEvents = '';
+  card.style.transform = '';
+  cards.forEach(c => c.classList.remove('drag-over'));
+
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragUp);
+  document.removeEventListener('pointercancel', onDragUp);
+
+  if (hoverTarget) {
+    const srcId  = parseInt(card.dataset.tmdb, 10);
+    const destId = parseInt(hoverTarget.dataset.tmdb, 10);
+    reorderWatchlist(srcId, destId);
+  }
+
+  dragState = null;
+}
+
+function reorderWatchlist(srcId, destId) {
+  const srcIdx  = watchlist.findIndex(w => w.tmdbId === srcId);
+  const destIdx = watchlist.findIndex(w => w.tmdbId === destId);
+  if (srcIdx === -1 || destIdx === -1) return;
+
+  const [moved] = watchlist.splice(srcIdx, 1);
+  watchlist.splice(destIdx, 0, moved);
+
+  renderWatchlist();
+  saveWatchlistOrder();
+}
+
+async function saveWatchlistOrder() {
+  // Persist the new order by writing a sortOrder index to each item.
+  // Runs in the background — UI has already updated optimistically.
+  try {
+    await Promise.all(
+      watchlist.map((w, i) => DB.updateWatchlistOrder(currentUser.id, w.tmdbId, i))
+    );
+  } catch (e) {
+    toast('Could not save new order: ' + e.message, 'warn');
+  }
 }
 
 async function setStatus(tmdbId, status) {
