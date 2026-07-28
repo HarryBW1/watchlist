@@ -132,8 +132,10 @@
   </div>
 
   <header class="app-header">
-    <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
-    <h1>Watchlist</h1>
+    <button class="brand-link" onclick="switchTab('home')" aria-label="Go to home">
+      <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
+      <h1>Watchlist</h1>
+    </button>
     <nav class="desktop-tabs">
       <button class="desktop-tab active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i> Home</button>
       <button class="desktop-tab"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i> Search</button>
@@ -197,6 +199,16 @@
     <!-- WATCHLIST -->
     <section id="tab-watchlist" class="tab-panel">
       <div class="stats-row" id="wl-stats"></div>
+
+      <div class="view-toggle-row">
+        <button class="view-toggle-btn" data-view="grid" onclick="setWatchlistView('grid')" aria-label="Grid view">
+          <i class="ti ti-layout-grid"></i>
+        </button>
+        <button class="view-toggle-btn" data-view="list" onclick="setWatchlistView('list')" aria-label="List view">
+          <i class="ti ti-list"></i>
+        </button>
+      </div>
+
       <div class="wl-filters">
         <select id="wl-st" onchange="renderWatchlist()">
           <option value="all">All statuses</option>
