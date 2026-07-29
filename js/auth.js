@@ -70,5 +70,11 @@ function onAuthChange(callback) {
     callback(session?.user ?? null);
   });
 }
+async function sendPasswordReset(email) {
+  const { error } = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) throw error;
+}
 
 window.Auth = { initSupabase, isConfigured, sbClient, signUp, signIn, signOut, getUser, onAuthChange };
