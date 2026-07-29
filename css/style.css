@@ -519,6 +519,11 @@ select option { background: var(--surface2); }
   main { padding: 20px 24px 0; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
   .toast { bottom: 20px; }
+
+  /* Desktop: title sits left, immediately after the logo, rather than
+     stretching/centering the way it does on mobile */
+  .brand-link { flex: 0 0 auto; }
+  .app-header h1 { flex: 0 0 auto; }
 }
 
 @media (max-width: 360px) {
