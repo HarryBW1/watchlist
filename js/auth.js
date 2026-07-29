@@ -77,4 +77,4 @@ async function sendPasswordReset(email) {
   if (error) throw error;
 }
 
-window.Auth = { initSupabase, isConfigured, sbClient, signUp, signIn, signOut, getUser, onAuthChange };
+window.Auth = { initSupabase, isConfigured, sbClient, signUp, signIn, signOut, getUser, onAuthChange, sendPasswordReset };

@@ -506,7 +506,9 @@ function closeModal() {
 async function addToWL() {
   if (!currentModal || isInWL(currentModal.tmdbId)) return;
   // Negative timestamp means new items naturally sort before older ones
-  const item = { ...currentModal, addedAt: Date.now(), sortOrder: -Date.now() };
+  // Small negative counter so new items sort first — avoids integer overflow
+  // that a raw Date.now() timestamp would cause in a standard integer column
+  const item = { ...currentModal, addedAt: Date.now(), sortOrder: -(watchlist.length + 1) };
   watchlist.unshift(item);
   updateBadge();
   document.querySelectorAll(`[data-id="${item.tmdbId}"]`).forEach(c => c.classList.add('in-watchlist'));
@@ -625,7 +627,7 @@ function renderWatchlist() {
       : '';
 
     if (viewMode === 'list') {
-      const backdrop = TMDB.backdropUrl(w.backdropPath, 'w300');
+      const backdrop = TMDB.backdropUrl(w.backdropPath, 'w780');
       return `<div class="wl-card list-card" data-tmdb="${w.tmdbId}">
         <div class="wl-card-hero" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
           ${backdrop ? `<img src="${esc(backdrop)}" alt="" loading="lazy">` : ''}
@@ -1115,6 +1117,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ptrEl = document.getElementById('ptr-indicator');
 
   document.addEventListener('touchstart', e => {
+    // Never start pull-to-refresh while a card drag is in progress
+    if (dragState) { ptrStartY = 0; return; }
     // Only start tracking if already scrolled to the very top
     if (window.scrollY === 0) ptrStartY = e.touches[0].clientY;
     else ptrStartY = 0;
@@ -1122,6 +1126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
+    if (dragState) { ptrStartY = 0; ptrEl.style.display = 'none'; return; }
     if (!ptrStartY) return;
     const pullDist = e.touches[0].clientY - ptrStartY;
     if (pullDist <= 0) return;
@@ -1140,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.addEventListener('touchend', async () => {
+    if (dragState) { ptrStartY = 0; return; }
     if (!ptrStartY) return;
     ptrStartY = 0;
 
