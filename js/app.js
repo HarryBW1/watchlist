@@ -429,11 +429,29 @@ async function openModal(id, mediaType) {
     ]);
     currentModal = buildModalItem(details, mediaType, providers);
     renderModal(currentModal, providers);
+    syncWatchlistPoster(currentModal); // pick up any poster/backdrop change from TMDB
   } catch {
     modal.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
       <p>Couldn't load details.</p>
       <button onclick="closeModal()" class="primary-btn" style="margin-top:12px">Close</button></div>`;
   }
+}
+
+// If this title is already in the watchlist and TMDB's poster/backdrop has
+// changed since it was added, update the stored copy automatically.
+async function syncWatchlistPoster(fresh) {
+  const item = watchlist.find(w => w.tmdbId === fresh.tmdbId);
+  if (!item) return;
+  const posterChanged   = fresh.posterPath   && fresh.posterPath   !== item.posterPath;
+  const backdropChanged = fresh.backdropPath && fresh.backdropPath !== item.backdropPath;
+  if (!posterChanged && !backdropChanged) return;
+
+  item.posterPath   = fresh.posterPath;
+  item.backdropPath = fresh.backdropPath;
+  if (activeTab === 'watchlist') renderWatchlist();
+
+  try { await DB.upsertWatchlistItem(currentUser.id, item); }
+  catch { /* best-effort — will retry next time the item is opened */ }
 }
 
 function buildModalItem(d, mediaType, providers) {
