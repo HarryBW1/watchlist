@@ -884,6 +884,10 @@ select option { background: var(--surface2); }
 }
 .list-card .wl-card-title { white-space: normal; }
 .list-card .status-sel { max-width: 220px; }
+.list-card .status-badge {
+  display: flex; width: 100%; max-width: 220px;
+  box-sizing: border-box; justify-content: center;
+}
 
 .list-card .wl-remove-btn {
   position: absolute; top: 8px; right: 8px; z-index: 3;
@@ -902,10 +906,10 @@ select option { background: var(--surface2); }
 .drag-handle:active { cursor: grabbing; }
 
 .list-card .drag-handle {
-  position: static;
+  position: absolute;
+  top: auto; left: auto;
+  bottom: 8px; right: 8px;
   width: 28px; height: 28px; flex-shrink: 0;
-  align-self: center;
-  margin-left: 4px;
   background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
 }
 
