@@ -6,12 +6,12 @@ A personal streaming watchlist PWA with **cloud sync and login**. Search any fil
 
 ## Features
 
-- 🔐 **Account login** — email/password, data synced across all your devices
-- 🔍 **Live TMDB search** — every film and series ever made
+- 🔐 **Account login** - email/password, data synced across all your devices
+- 🔍 **Live TMDB search** - every film and series ever made
 - 🖼 **Posters, backdrops, descriptions, ratings, genres**
-- 📡 **Streaming providers** — see which platform each title is on
+- 📡 **Streaming providers** - see which platform each title is on
 - 🔖 **Watchlist** with status tracking (Want to watch / Watching / Finished / Dropped)
-- 📺 **YouTube tab** — save and track YouTube links
+- 📺 **YouTube tab** - save and track YouTube links
 - 📱 **Installs on iPhone/iPad** as a full-screen home screen app
 - ✈️ Works offline after first load
 
