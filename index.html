@@ -260,6 +260,23 @@
     <section id="tab-settings" class="tab-panel">
 
       <div class="settings-section">
+        <h2><i class="ti ti-user"></i> Account</h2>
+        <div class="settings-row">
+          <label>Signed in as</label>
+          <span class="settings-email" id="settings-email"></span>
+        </div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <button class="primary-btn" onclick="sendPasswordReset()">
+            <i class="ti ti-key"></i> Reset password
+          </button>
+          <p id="reset-password-status" style="font-size:13px;min-height:18px;color:var(--muted)"></p>
+          <button class="danger-btn" onclick="handleSignOut()">
+            <i class="ti ti-logout"></i> Sign out
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <h2><i class="ti ti-palette"></i> Appearance</h2>
 
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Mode</p>
@@ -281,20 +298,13 @@
       </div>
 
       <div class="settings-section">
-        <h2><i class="ti ti-user"></i> Account</h2>
-        <div class="settings-row">
-          <label>Signed in as</label>
-          <span class="settings-email" id="settings-email"></span>
-        </div>
-        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
-          <button class="primary-btn" onclick="sendPasswordReset()">
-            <i class="ti ti-key"></i> Reset password
-          </button>
-          <p id="reset-password-status" style="font-size:13px;min-height:18px;color:var(--muted)"></p>
-          <button class="danger-btn" onclick="handleSignOut()">
-            <i class="ti ti-logout"></i> Sign out
-          </button>
-        </div>
+        <h2><i class="ti ti-map-pin"></i> Streaming Region</h2>
+        <p style="font-size:13px;color:var(--muted)">
+          Currently set to <strong style="color:var(--text)">United Kingdom (GB)</strong>.
+          To change region, open <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code>
+          and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
+          to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
+        </p>
       </div>
 
       <div class="settings-section">
@@ -313,16 +323,6 @@
             <i class="ti ti-device-floppy"></i> Update key
           </button>
         </div>
-      </div>
-
-      <div class="settings-section">
-        <h2><i class="ti ti-map-pin"></i> Streaming Region</h2>
-        <p style="font-size:13px;color:var(--muted)">
-          Currently set to <strong style="color:var(--text)">United Kingdom (GB)</strong>.
-          To change region, open <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code>
-          and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
-          to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
-        </p>
       </div>
 
       <div class="settings-section">
