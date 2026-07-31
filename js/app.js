@@ -846,20 +846,27 @@ async function setUserRating(tmdbId, rating) {
 async function setStatus(tmdbId, status) {
   const item = watchlist.find(w => w.tmdbId === tmdbId);
   if (!item) return;
+  const prevStatus = item.status;
   item.status = status;
 
   const activeFilter = document.getElementById('wl-st').value;
-  if (activeFilter !== 'all') {
-    // A status filter is active — re-render so the item moves out of view immediately
+  // Finished items are hidden under "All statuses", so switching a status
+  // to or from Finished changes what's visible — always re-render for that case.
+  const visibilityChanged = status === 'Finished' || prevStatus === 'Finished';
+
+  if (activeFilter !== 'all' || visibilityChanged) {
+    // Re-render so the item moves in/out of view immediately
     setTimeout(renderWatchlist, 0);
   } else {
-    // No filter — just update the badge in-place, no DOM teardown needed
+    // No filter, no visibility change — just update the badge in-place
     const card = document.querySelector(`.wl-card[data-tmdb="${tmdbId}"]`);
     if (card) {
       const badge = card.querySelector('.status-badge');
       if (badge) badge.outerHTML = statusBadge(status);
     }
   }
+
+  updateBadge(); // Total/nav badge exclude Finished, so this needs to reflect the change too
 
   try { await DB.updateWatchlistStatus(currentUser.id, tmdbId, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
