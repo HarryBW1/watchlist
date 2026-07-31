@@ -369,7 +369,7 @@ select option { background: var(--surface2); }
   position: relative;
 }
 .wl-card-poster {
-  position: relative; aspect-ratio: 16/9; background: var(--surface2); overflow: hidden;
+  position: relative; aspect-ratio: 2/3; background: var(--surface2); overflow: hidden;
 }
 .wl-card-poster img { width: 100%; height: 100%; object-fit: cover; }
 .wl-card-poster .wl-poster-ph {
