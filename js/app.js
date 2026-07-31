@@ -30,7 +30,9 @@ function toast(msg, type = 'info') {
 }
 
 function updateBadge() {
-  const wlTotal = watchlist.length;
+  // Finished items are tucked away from the default view, so they don't count
+  // toward the badge either — badge reflects what's visible under "All statuses"
+  const wlTotal = watchlist.filter(w => w.status !== 'Finished').length;
   const ytTotal = ytLinks.length;
 
   document.querySelectorAll('.mob-badge, .dt-badge').forEach(el => {
@@ -601,10 +603,12 @@ function renderWatchlist() {
   });
   if (currentPf !== 'all' && pfSelect.value !== currentPf) pfSelect.value = 'all';
 
-  const total    = watchlist.length;
-  const watching = watchlist.filter(w => w.status === 'Watching').length;
   const finished = watchlist.filter(w => w.status === 'Finished').length;
+  const watching = watchlist.filter(w => w.status === 'Watching').length;
   const want     = watchlist.filter(w => w.status === 'Want to watch').length;
+  // "Total" reflects what's visible under All statuses — Finished items are
+  // tucked away and only surface when the Finished filter is explicitly chosen
+  const total    = watchlist.length - finished;
   document.getElementById('wl-stats').innerHTML = `
     <div class="stat"><span class="stat-n">${total}</span><span class="stat-l">Total</span></div>
     <div class="stat"><span class="stat-n">${want}</span><span class="stat-l">To watch</span></div>
@@ -612,6 +616,8 @@ function renderWatchlist() {
     <div class="stat"><span class="stat-n">${finished}</span><span class="stat-l">Finished</span></div>`;
 
   const filtered = watchlist.filter(w => {
+    // Finished items are hidden under "All statuses" — only the Finished filter shows them
+    if (stFilter === 'all' && w.status === 'Finished') return false;
     const matchStatus   = stFilter   === 'all' || w.status    === stFilter;
     const matchType     = typeFilter === 'all' || w.mediaType === typeFilter;
     const matchPlatform = pfFilter   === 'all' || getProviderNames(w).includes(pfFilter);
@@ -663,6 +669,7 @@ function renderWatchlist() {
             <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
               ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
             </select>
+            ${stFilter === 'Finished' ? renderStars(w.tmdbId, w.userRating) : ''}
           </div>
           ${dragHandle}
         </div>
@@ -683,6 +690,7 @@ function renderWatchlist() {
         <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
           ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
         </select>
+        ${stFilter === 'Finished' ? renderStars(w.tmdbId, w.userRating) : ''}
       </div>
     </div>`;
   }).join('');
@@ -799,6 +807,40 @@ async function saveWatchlistOrder() {
   } catch (e) {
     toast('Could not save new order: ' + e.message, 'warn');
   }
+}
+
+// ── Star rating (Finished filter only) — supports half-star increments ─────
+function renderStars(tmdbId, rating) {
+  rating = rating || 0;
+  let stars = '';
+  for (let i = 1; i <= 5; i++) {
+    let fill = 0;
+    if (rating >= i) fill = 100;
+    else if (rating >= i - 0.5) fill = 50;
+    stars += `<div class="star-slot">
+      <div class="star-bg"><i class="ti ti-star-filled"></i></div>
+      <div class="star-fg" style="width:${fill}%"><i class="ti ti-star-filled"></i></div>
+      <div class="star-hit">
+        <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i - 0.5})" aria-label="Rate ${i - 0.5} stars"></button>
+        <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i})" aria-label="Rate ${i} stars"></button>
+      </div>
+    </div>`;
+  }
+  const label = rating ? `${rating.toFixed(1).replace('.0','')} / 5` : 'Not rated';
+  return `<div class="star-rating-row">
+    <div class="star-rating" data-tmdb="${tmdbId}">${stars}</div>
+    <span class="star-rating-label">${label}</span>
+    ${rating ? `<button class="star-clear" onclick="event.stopPropagation();setUserRating(${tmdbId},0)" aria-label="Clear rating"><i class="ti ti-x"></i></button>` : ''}
+  </div>`;
+}
+
+async function setUserRating(tmdbId, rating) {
+  const item = watchlist.find(w => w.tmdbId === tmdbId);
+  if (!item) return;
+  item.userRating = rating || null;
+  setTimeout(renderWatchlist, 0);
+  try { await DB.updateWatchlistRating(currentUser.id, tmdbId, item.userRating); }
+  catch (e) { toast('Sync error: ' + e.message, 'warn'); }
 }
 
 async function setStatus(tmdbId, status) {
@@ -1202,6 +1244,7 @@ window.closeModal           = closeModal;
 window.addToWL              = addToWL;
 window.removeFromWL         = removeFromWL;
 window.setStatus            = setStatus;
+window.setUserRating        = setUserRating;
 window.renderWatchlist      = renderWatchlist;
 window.addYT                = addYT;
 window.removeYT             = removeYT;

@@ -47,6 +47,7 @@ async function loadWatchlist(userId) {
     status:       row.status,
     addedAt:      new Date(row.added_at).getTime(),
     sortOrder:    row.sort_order ?? 0,
+    userRating:   row.user_rating ?? null,
   }));
 }
 
@@ -71,6 +72,7 @@ async function upsertWatchlistItem(userId, item) {
       status:        item.status,
       added_at:      new Date(item.addedAt).toISOString(),
       sort_order:    item.sortOrder ?? 0,
+      user_rating:   item.userRating ?? null,
     }, { onConflict: 'user_id,tmdb_id' });
   if (error) throw error;
 }
@@ -92,6 +94,13 @@ async function updateWatchlistStatus(userId, tmdbId, status) {
 async function updateWatchlistOrder(userId, tmdbId, sortOrder) {
   const { error } = await sb()
     .from('watchlist').update({ sort_order: sortOrder })
+    .eq('user_id', userId).eq('tmdb_id', tmdbId);
+  if (error) throw error;
+}
+
+async function updateWatchlistRating(userId, tmdbId, rating) {
+  const { error } = await sb()
+    .from('watchlist').update({ user_rating: rating })
     .eq('user_id', userId).eq('tmdb_id', tmdbId);
   if (error) throw error;
 }
@@ -155,6 +164,6 @@ async function updateYTStatus(userId, id, status) {
 
 window.DB = {
   loadProfile, saveProfile,
-  loadWatchlist, upsertWatchlistItem, deleteWatchlistItem, updateWatchlistStatus, updateWatchlistOrder,
+  loadWatchlist, upsertWatchlistItem, deleteWatchlistItem, updateWatchlistStatus, updateWatchlistOrder, updateWatchlistRating,
   loadYTLinks, upsertYTLink, deleteYTLink, updateYTStatus,
 };
