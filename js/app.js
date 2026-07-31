@@ -819,7 +819,7 @@ function renderStars(tmdbId, rating) {
     else if (rating >= i - 0.5) fill = 50;
     stars += `<div class="star-slot">
       <div class="star-bg"><i class="ti ti-star-filled"></i></div>
-      <div class="star-fg" style="width:${fill}%"><i class="ti ti-star-filled"></i></div>
+      <div class="star-fg-mask" style="--fill:${fill}%"><div class="star-fg-icon"><i class="ti ti-star-filled"></i></div></div>
       <div class="star-hit">
         <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i - 0.5})" aria-label="Rate ${i - 0.5} stars"></button>
         <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i})" aria-label="Rate ${i} stars"></button>
