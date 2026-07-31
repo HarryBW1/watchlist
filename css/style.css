@@ -935,14 +935,26 @@ select option { background: var(--surface2); }
 .star-slot {
   position: relative; width: 18px; height: 18px; flex-shrink: 0;
 }
-.star-slot .star-bg,
-.star-slot .star-fg {
+.star-slot .star-bg {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; pointer-events: none;
+  color: var(--border2);
 }
-.star-slot .star-bg { color: var(--border2); }
-.star-slot .star-fg { color: #fbbf24; overflow: hidden; }
+/* Mask clips to the fill percentage — the icon inside keeps its full,
+   unshifted position so cropping happens cleanly at the mask edge
+   rather than re-centering (which was cutting off the wrong side). */
+.star-fg-mask {
+  position: absolute; inset: 0;
+  overflow: hidden;
+  width: var(--fill, 0%);
+  pointer-events: none;
+}
+.star-fg-mask .star-fg-icon {
+  position: absolute; inset: 0; width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #fbbf24;
+}
 .star-slot .star-hit {
   position: absolute; inset: 0; display: flex;
 }
