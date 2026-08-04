@@ -729,6 +729,9 @@ function onDragHandleDown(e) {
     cards,
     startY: e.clientY,
     startX: e.clientX,
+    lastClientX: e.clientX,
+    lastClientY: e.clientY,
+    startScrollY: window.scrollY,
     cardStartRect: card.getBoundingClientRect(),
     pointerId: e.pointerId,
   };
@@ -746,7 +749,10 @@ function onDragHandleDown(e) {
 
 function onDragMove(e) {
   if (!dragState) return;
-  const dy = e.clientY - dragState.startY;
+  dragState.lastClientX = e.clientX;
+  dragState.lastClientY = e.clientY;
+  const scrollDelta = window.scrollY - dragState.startScrollY;
+  const dy = (e.clientY - dragState.startY) + scrollDelta;
   const dx = e.clientX - dragState.startX;
   dragState.card.style.transform = `translate(${dx}px, ${dy}px)`;
 
@@ -759,10 +765,65 @@ function onDragMove(e) {
   } else {
     dragState.hoverTarget = null;
   }
+
+  updateAutoScroll(e.clientY);
+}
+
+// ── Auto-scroll while dragging near the top/bottom of the screen ───────────
+const AUTOSCROLL_EDGE  = 90;  // px from viewport edge that triggers scrolling
+const AUTOSCROLL_SPEED = 14;  // px per frame at full deflection
+let autoScrollDir  = 0;       // -1 up, 0 none, 1 down
+let autoScrollFrame = null;
+
+function updateAutoScroll(clientY) {
+  const vh = window.innerHeight;
+  if (clientY < AUTOSCROLL_EDGE) {
+    autoScrollDir = -1 * (1 - clientY / AUTOSCROLL_EDGE); // faster the closer to the edge
+  } else if (clientY > vh - AUTOSCROLL_EDGE) {
+    autoScrollDir = (clientY - (vh - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE;
+  } else {
+    autoScrollDir = 0;
+  }
+
+  if (autoScrollDir !== 0 && !autoScrollFrame) {
+    autoScrollFrame = requestAnimationFrame(autoScrollStep);
+  }
+}
+
+function autoScrollStep() {
+  autoScrollFrame = null;
+  if (!dragState || autoScrollDir === 0) return;
+
+  window.scrollBy(0, autoScrollDir * AUTOSCROLL_SPEED);
+
+  // Update the card's on-screen position to compensate for the scroll that just happened
+  const scrollDelta = window.scrollY - dragState.startScrollY;
+  const dy = (dragState.lastClientY - dragState.startY) + scrollDelta;
+  const dx = dragState.lastClientX - dragState.startX;
+  dragState.card.style.transform = `translate(${dx}px, ${dy}px)`;
+
+  // Keep the dragged card visually tracking the pointer as the page scrolls
+  // beneath it — re-run the hover-target detection at the same screen position
+  const rect = dragState.card.getBoundingClientRect();
+  const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    ?.closest('.wl-card');
+  if (target && target !== dragState.card && dragState.cards.includes(target)) {
+    dragState.cards.forEach(c => c.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+    dragState.hoverTarget = target;
+  }
+
+  autoScrollFrame = requestAnimationFrame(autoScrollStep);
+}
+
+function stopAutoScroll() {
+  autoScrollDir = 0;
+  if (autoScrollFrame) { cancelAnimationFrame(autoScrollFrame); autoScrollFrame = null; }
 }
 
 function onDragUp(e) {
   if (!dragState) return;
+  stopAutoScroll();
   const { card, hoverTarget, cards } = dragState;
 
   card.classList.remove('dragging');
@@ -820,10 +881,6 @@ function renderStars(tmdbId, rating) {
     stars += `<div class="star-slot">
       <div class="star-bg"><i class="ti ti-star-filled"></i></div>
       <div class="star-fg-mask" style="--fill:${fill}%"><div class="star-fg-icon"><i class="ti ti-star-filled"></i></div></div>
-      <div class="star-hit">
-        <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i - 0.5})" aria-label="Rate ${i - 0.5} stars"></button>
-        <button class="star-hit-half" onclick="event.stopPropagation();setUserRating(${tmdbId},${i})" aria-label="Rate ${i} stars"></button>
-      </div>
     </div>`;
   }
   const label = rating ? `${rating.toFixed(1).replace('.0','')} / 5` : 'Not rated';
@@ -841,6 +898,60 @@ async function setUserRating(tmdbId, rating) {
   setTimeout(renderWatchlist, 0);
   try { await DB.updateWatchlistRating(currentUser.id, tmdbId, item.userRating); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
+}
+
+// ── Star rating: press-and-drag across the row (tap also works, as a zero-distance drag) ──
+let starDrag = null;
+
+function computeRatingFromX(clientX, rect) {
+  const relX = clientX - rect.left;
+  let raw = (relX / rect.width) * 5;
+  raw = Math.round(raw * 2) / 2; // snap to nearest 0.5
+  return Math.max(0, Math.min(5, raw));
+}
+
+function paintStarRating(container, rating) {
+  container.querySelectorAll('.star-slot').forEach((slot, idx) => {
+    const i = idx + 1;
+    let fill = 0;
+    if (rating >= i) fill = 100;
+    else if (rating >= i - 0.5) fill = 50;
+    const mask = slot.querySelector('.star-fg-mask');
+    if (mask) mask.style.setProperty('--fill', fill + '%');
+  });
+  const row = container.closest('.star-rating-row');
+  const label = row?.querySelector('.star-rating-label');
+  if (label) label.textContent = rating ? `${rating.toFixed(1).replace('.0','')} / 5` : 'Not rated';
+}
+
+function initStarDrag() {
+  document.addEventListener('pointerdown', e => {
+    const container = e.target.closest('.star-rating');
+    if (!container) return;
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    starDrag = {
+      tmdbId: parseInt(container.dataset.tmdb, 10),
+      container, rect,
+      rating: computeRatingFromX(e.clientX, rect),
+    };
+    paintStarRating(container, starDrag.rating);
+    try { container.setPointerCapture(e.pointerId); } catch {}
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!starDrag) return;
+    starDrag.rating = computeRatingFromX(e.clientX, starDrag.rect);
+    paintStarRating(starDrag.container, starDrag.rating);
+  });
+
+  const commit = () => {
+    if (!starDrag) return;
+    setUserRating(starDrag.tmdbId, starDrag.rating);
+    starDrag = null;
+  };
+  document.addEventListener('pointerup', commit);
+  document.addEventListener('pointercancel', () => { starDrag = null; });
 }
 
 async function setStatus(tmdbId, status) {
@@ -1117,6 +1228,7 @@ function renderSettings() {
 // ── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   applyStoredTheme(); // apply immediately to avoid a flash of the wrong theme
+  initStarDrag();
 
   // ── Guard: Supabase CDN must have loaded ───────────────────────────────
   if (typeof window.supabase === 'undefined') {
