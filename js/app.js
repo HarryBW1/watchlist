@@ -770,17 +770,24 @@ function onDragMove(e) {
 }
 
 // ── Auto-scroll while dragging near the top/bottom of the screen ───────────
-const AUTOSCROLL_EDGE  = 90;  // px from viewport edge that triggers scrolling
-const AUTOSCROLL_SPEED = 14;  // px per frame at full deflection
+const AUTOSCROLL_EDGE  = 130; // px from viewport edge that triggers scrolling
+const AUTOSCROLL_SPEED = 22;  // px per frame at full deflection
 let autoScrollDir  = 0;       // -1 up, 0 none, 1 down
 let autoScrollFrame = null;
 
 function updateAutoScroll(clientY) {
   const vh = window.innerHeight;
+  // Bottom nav overlays the lower portion of the viewport — the content
+  // visually "ends" above it, so measure the bottom trigger zone from there
+  // rather than the true screen edge (which is what made this feel unresponsive).
+  const nav = document.querySelector('.bottom-nav');
+  const navHeight = (nav && getComputedStyle(nav).display !== 'none') ? nav.getBoundingClientRect().height : 0;
+  const effectiveBottom = vh - navHeight;
+
   if (clientY < AUTOSCROLL_EDGE) {
-    autoScrollDir = -1 * (1 - clientY / AUTOSCROLL_EDGE); // faster the closer to the edge
-  } else if (clientY > vh - AUTOSCROLL_EDGE) {
-    autoScrollDir = (clientY - (vh - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE;
+    autoScrollDir = -Math.min(1, 1 - clientY / AUTOSCROLL_EDGE);
+  } else if (clientY > effectiveBottom - AUTOSCROLL_EDGE) {
+    autoScrollDir = Math.min(1, (clientY - (effectiveBottom - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE);
   } else {
     autoScrollDir = 0;
   }
@@ -1289,11 +1296,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 8000);
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
+  // Grows #ptr-zone's height as the user pulls, revealing the spinner in its
+  // own reserved space below the (now-fixed) header — rather than floating
+  // an indicator over the content. Only our own threshold triggers a refresh;
+  // ordinary elastic overscroll bounce alone never does.
   let ptrStartY    = 0;
   let ptrTriggered = false;
-  const PTR_THRESHOLD = 80; // px of pull needed to trigger
+  const PTR_THRESHOLD  = 70;  // px of pull needed to trigger a refresh
+  const PTR_MAX_HEIGHT = 56;  // px — cap on how tall the reveal zone grows
 
-  const ptrEl = document.getElementById('ptr-indicator');
+  const ptrZone = document.getElementById('ptr-zone');
+  const ptrEl   = document.getElementById('ptr-indicator');
 
   document.addEventListener('touchstart', e => {
     // Never start pull-to-refresh while a card drag is in progress
@@ -1305,18 +1318,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
-    if (dragState) { ptrStartY = 0; ptrEl.style.display = 'none'; return; }
+    if (dragState) { ptrStartY = 0; ptrZone.style.height = '0px'; return; }
     if (!ptrStartY) return;
     const pullDist = e.touches[0].clientY - ptrStartY;
     if (pullDist <= 0) return;
 
-    const clamped = Math.min(pullDist, PTR_THRESHOLD * 1.5);
-    const progress = Math.min(pullDist / PTR_THRESHOLD, 1);
-
-    // Show and move the indicator down as user pulls
-    ptrEl.style.transform = `translateX(-50%) translateY(${clamped * 0.5}px)`;
-    ptrEl.style.opacity   = String(progress);
-    ptrEl.style.display   = 'flex';
+    const height = Math.min(pullDist * 0.5, PTR_MAX_HEIGHT);
+    ptrZone.style.height = `${height}px`;
 
     // Spin once threshold is reached
     ptrEl.classList.toggle('ptr-ready', pullDist >= PTR_THRESHOLD);
@@ -1329,19 +1337,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     ptrStartY = 0;
 
     if (ptrTriggered) {
-      // Snap indicator to settled position and spin while refreshing
-      ptrEl.style.transform = 'translateX(-50%) translateY(20px)';
+      // Settle at a fixed reveal height and spin while refreshing
+      ptrZone.style.height = `${PTR_MAX_HEIGHT}px`;
       ptrEl.classList.add('ptr-spinning');
       await doRefresh();
     }
 
-    // Hide indicator
-    ptrEl.style.opacity   = '0';
-    ptrEl.style.transform = 'translateX(-50%) translateY(-40px)';
+    // Collapse the reveal zone back to nothing
+    ptrZone.style.height = '0px';
     setTimeout(() => {
-      ptrEl.style.display = 'none';
       ptrEl.classList.remove('ptr-ready', 'ptr-spinning');
-    }, 300);
+    }, 250);
 
     ptrTriggered = false;
   }, { passive: true });
