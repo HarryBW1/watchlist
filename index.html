@@ -126,11 +126,6 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="app-shell" style="display:none">
 
-  <!-- Pull-to-refresh indicator -->
-  <div id="ptr-indicator" aria-hidden="true">
-    <i class="ti ti-refresh"></i>
-  </div>
-
   <header class="app-header">
     <button class="brand-link" onclick="switchTab('home')" aria-label="Go to home">
       <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
@@ -145,6 +140,11 @@
     </nav>
     <div class="user-avatar" id="user-avatar" onclick="switchTab('settings')" title="Account">?</div>
   </header>
+
+  <!-- Pull-to-refresh reserved space — sits below the fixed header, grows as the user pulls -->
+  <div id="ptr-zone" aria-hidden="true">
+    <div id="ptr-indicator"><i class="ti ti-refresh"></i></div>
+  </div>
 
   <main>
 
