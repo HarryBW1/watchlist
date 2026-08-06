@@ -261,7 +261,11 @@
 
       <div class="settings-section">
         <h2><i class="ti ti-user"></i> Account</h2>
-        <div class="settings-row">
+
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Profile picture</p>
+        <div class="avatar-picker-grid" id="avatar-picker"></div>
+
+        <div class="settings-row" style="margin-top:18px">
           <label>Signed in as</label>
           <span class="settings-email" id="settings-email"></span>
         </div>
@@ -347,6 +351,16 @@
         </div>
       </div>
 
+      <div class="settings-section danger-zone">
+        <h2><i class="ti ti-alert-triangle"></i> Danger Zone</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Permanently delete your watchlist, YouTube links, saved TMDB key, and profile data. This cannot be undone.
+        </p>
+        <button class="danger-btn" onclick="openDeleteAccountModal()">
+          <i class="ti ti-trash"></i> Delete account data
+        </button>
+      </div>
+
     </section>
 
   </main>
@@ -365,6 +379,38 @@
 <!-- Detail modal -->
 <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal" id="modal"></div>
+</div>
+
+<!-- Delete account confirmation modal -->
+<div class="modal-backdrop" id="delete-account-modal" role="dialog" aria-modal="true">
+  <div class="modal delete-modal">
+    <div class="delete-modal-body">
+      <div class="delete-modal-icon"><i class="ti ti-alert-triangle"></i></div>
+      <h2>Delete account data?</h2>
+      <p class="delete-modal-explain">
+        This will permanently erase, for this account:
+      </p>
+      <ul class="delete-modal-list">
+        <li><i class="ti ti-bookmark"></i> Your entire watchlist and any ratings you've given</li>
+        <li><i class="ti ti-brand-youtube"></i> All saved YouTube links</li>
+        <li><i class="ti ti-api"></i> Your saved TMDB API key</li>
+        <li><i class="ti ti-palette"></i> Your theme and profile picture preferences</li>
+      </ul>
+      <p class="delete-modal-explain">
+        This cannot be undone. Type <strong>DELETE</strong> below to confirm.
+      </p>
+      <input type="text" id="delete-confirm-input" placeholder="Type DELETE" autocomplete="off"
+             autocapitalize="off" oninput="onDeleteConfirmInput()" />
+      <div class="delete-modal-actions">
+        <button class="primary-btn" style="background:var(--surface2);color:var(--text)" onclick="closeDeleteAccountModal()">
+          Cancel
+        </button>
+        <button class="danger-btn" id="delete-confirm-btn" disabled onclick="confirmDeleteAccount()">
+          Delete everything
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast -->
