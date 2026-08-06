@@ -1,6 +1,7 @@
 'use strict';
 // ── State ──────────────────────────────────────────────────────────────────
 let currentUser    = null;
+let currentAvatarId = null;
 let watchlist      = [];
 let ytLinks        = [];
 let activeTab      = 'home';
@@ -213,6 +214,7 @@ async function handleUser(user) {
     watchlist = wl;
     ytLinks   = yt;
     updateBadge();
+    applyAvatar(profile?.avatar_id);
 
     if (profile?.tmdb_key) {
       // Returning user with key — go straight to app
@@ -1226,10 +1228,97 @@ async function sendPasswordReset() {
   }
 }
 
+// ── Profile picture ──────────────────────────────────────────────────────────
+// A set of built-in colourful icon avatars — similar in spirit to the preset
+// profile pictures on Netflix/Disney+/Prime Video, without using any
+// copyrighted platform artwork.
+const AVATAR_OPTIONS = [
+  { id: 'a1',  icon: 'ti-mood-smile', bg: '#e50914' },
+  { id: 'a2',  icon: 'ti-ghost-2',    bg: '#6c63ff' },
+  { id: 'a3',  icon: 'ti-robot',      bg: '#00a8e0' },
+  { id: 'a4',  icon: 'ti-cat',        bg: '#ce712e' },
+  { id: 'a5',  icon: 'ti-alien',      bg: '#22c55e' },
+  { id: 'a6',  icon: 'ti-crown',      bg: '#eab308' },
+  { id: 'a7',  icon: 'ti-skull',      bg: '#71717a' },
+  { id: 'a8',  icon: 'ti-heart',      bg: '#ec4899' },
+  { id: 'a9',  icon: 'ti-bolt',       bg: '#3b82f6' },
+  { id: 'a10', icon: 'ti-flame',      bg: '#f97316' },
+  { id: 'a11', icon: 'ti-star-filled',bg: '#8adae0' },
+  { id: 'a12', icon: 'ti-moon-stars', bg: '#5822b4' },
+];
+
+function applyAvatar(avatarId) {
+  currentAvatarId = avatarId || null;
+  const opt = AVATAR_OPTIONS.find(a => a.id === avatarId);
+  document.querySelectorAll('#user-avatar').forEach(el => {
+    if (opt) {
+      el.style.background = opt.bg;
+      el.innerHTML = `<i class="ti ${opt.icon}"></i>`;
+    } else {
+      el.style.background = '';
+      el.textContent = currentUser ? currentUser.email[0].toUpperCase() : '?';
+    }
+  });
+}
+
+function renderAvatarPicker() {
+  const grid = document.getElementById('avatar-picker');
+  if (!grid) return;
+  grid.innerHTML = AVATAR_OPTIONS.map(a => `
+    <button class="avatar-option ${currentAvatarId === a.id ? 'selected' : ''}"
+            style="background:${a.bg}" onclick="setAvatar('${a.id}')" aria-label="Choose avatar">
+      <i class="ti ${a.icon}"></i>
+    </button>`).join('') +
+    `<button class="avatar-option avatar-option-clear ${!currentAvatarId ? 'selected' : ''}"
+             onclick="setAvatar(null)" aria-label="Use initials instead">
+      <i class="ti ti-letter-case"></i>
+    </button>`;
+}
+
+async function setAvatar(avatarId) {
+  applyAvatar(avatarId);
+  renderAvatarPicker();
+  try { await DB.saveAvatar(currentUser.id, avatarId); }
+  catch (e) { toast('Could not save avatar: ' + e.message, 'warn'); }
+}
+
+// ── Delete account ───────────────────────────────────────────────────────────
+function openDeleteAccountModal() {
+  document.getElementById('delete-account-modal').classList.add('open');
+  document.getElementById('delete-confirm-input').value = '';
+  document.getElementById('delete-confirm-btn').disabled = true;
+}
+
+function closeDeleteAccountModal() {
+  document.getElementById('delete-account-modal').classList.remove('open');
+}
+
+function onDeleteConfirmInput() {
+  const val = document.getElementById('delete-confirm-input').value.trim();
+  document.getElementById('delete-confirm-btn').disabled = (val !== 'DELETE');
+}
+
+async function confirmDeleteAccount() {
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  try {
+    await DB.deleteAllUserData(currentUser.id);
+    toast('Your data has been deleted', 'success');
+    closeDeleteAccountModal();
+    await handleSignOut();
+  } catch (e) {
+    toast('Delete failed: ' + e.message, 'warn');
+    btn.disabled = false;
+    btn.textContent = 'Delete everything';
+  }
+}
+
 function renderSettings() {
   const el = document.getElementById('settings-email');
   if (el && currentUser) el.textContent = currentUser.email;
   syncThemeControls();
+  renderAvatarPicker();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -1269,11 +1358,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('onboarding-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitOnboardingKey(); });
   document.getElementById('yt-url')           .addEventListener('keydown', e => { if (e.key === 'Enter') addYT(); });
   document.getElementById('yt-title')         .addEventListener('keydown', e => { if (e.key === 'Enter') addYT(); });
+  document.getElementById('delete-confirm-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !document.getElementById('delete-confirm-btn').disabled) confirmDeleteAccount();
+  });
   document.getElementById('s-input')          .addEventListener('keydown', e => {
     if (e.key === 'Escape') { document.getElementById('s-input').value = ''; resetSearch(); }
   });
   document.getElementById('modal-backdrop').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-backdrop')) closeModal();
+  });
+  document.getElementById('delete-account-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('delete-account-modal')) closeDeleteAccountModal();
   });
 
   // Auth state listener fires on login, logout, token refresh
@@ -1352,6 +1447,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     ptrTriggered = false;
   }, { passive: true });
 
+  // Dismiss the on-screen keyboard when the user starts scrolling — otherwise
+  // it can stay open and cover content above it while browsing a list.
+  window.addEventListener('scroll', () => {
+    const ae = document.activeElement;
+    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) ae.blur();
+  }, { passive: true });
+
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 });
 
@@ -1370,6 +1472,11 @@ window.addToWL              = addToWL;
 window.removeFromWL         = removeFromWL;
 window.setStatus            = setStatus;
 window.setUserRating        = setUserRating;
+window.setAvatar             = setAvatar;
+window.openDeleteAccountModal   = openDeleteAccountModal;
+window.closeDeleteAccountModal  = closeDeleteAccountModal;
+window.onDeleteConfirmInput     = onDeleteConfirmInput;
+window.confirmDeleteAccount     = confirmDeleteAccount;
 window.renderWatchlist      = renderWatchlist;
 window.addYT                = addYT;
 window.removeYT             = removeYT;

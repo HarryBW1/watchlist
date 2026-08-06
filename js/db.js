@@ -7,17 +7,24 @@ function sb() { return Auth.sbClient(); }
 async function loadProfile(userId) {
   const { data, error } = await sb()
     .from('profiles')
-    .select('tmdb_key')
+    .select('tmdb_key, avatar_id')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
-  return data; // { tmdb_key } or null
+  return data; // { tmdb_key, avatar_id } or null
 }
 
 async function saveProfile(userId, tmdbKey) {
   const { error } = await sb()
     .from('profiles')
     .upsert({ id: userId, tmdb_key: tmdbKey }, { onConflict: 'id' });
+  if (error) throw error;
+}
+
+async function saveAvatar(userId, avatarId) {
+  const { error } = await sb()
+    .from('profiles')
+    .upsert({ id: userId, avatar_id: avatarId }, { onConflict: 'id' });
   if (error) throw error;
 }
 
@@ -162,8 +169,23 @@ async function updateYTStatus(userId, id, status) {
   if (error) throw error;
 }
 
+// ── Delete all data for a user ───────────────────────────────────────────────
+// Removes every row this user owns across all tables. Does NOT delete the
+// underlying Supabase Auth account itself — that requires a service-role
+// operation and cannot safely be done from client-side code with the anon key.
+async function deleteAllUserData(userId) {
+  const results = await Promise.all([
+    sb().from('watchlist').delete().eq('user_id', userId),
+    sb().from('yt_links').delete().eq('user_id', userId),
+    sb().from('profiles').delete().eq('id', userId),
+  ]);
+  const failed = results.find(r => r.error);
+  if (failed) throw failed.error;
+}
+
 window.DB = {
-  loadProfile, saveProfile,
+  loadProfile, saveProfile, saveAvatar,
   loadWatchlist, upsertWatchlistItem, deleteWatchlistItem, updateWatchlistStatus, updateWatchlistOrder, updateWatchlistRating,
   loadYTLinks, upsertYTLink, deleteYTLink, updateYTStatus,
+  deleteAllUserData,
 };
