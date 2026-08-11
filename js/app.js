@@ -1447,11 +1447,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     ptrTriggered = false;
   }, { passive: true });
 
-  // Dismiss the on-screen keyboard when the user starts scrolling — otherwise
-  // it can stay open and cover content above it while browsing a list.
-  window.addEventListener('scroll', () => {
+  // Dismiss the on-screen keyboard only on an actual manual scroll gesture —
+  // not the automatic scroll iOS performs to reveal a newly-focused input
+  // above the keyboard (which also fires a native 'scroll' event and was
+  // closing the keyboard immediately after opening it).
+  document.addEventListener('touchmove', e => {
     const ae = document.activeElement;
-    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) ae.blur();
+    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName) && e.target !== ae) {
+      ae.blur();
+    }
   }, { passive: true });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
