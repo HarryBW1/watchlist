@@ -126,14 +126,11 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="app-shell" style="display:none">
 
-  <!-- Pull-to-refresh indicator -->
-  <div id="ptr-indicator" aria-hidden="true">
-    <i class="ti ti-refresh"></i>
-  </div>
-
   <header class="app-header">
-    <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
-    <h1>Watchlist</h1>
+    <button class="brand-link" onclick="switchTab('home')" aria-label="Go to home">
+      <div class="logo" aria-hidden="true"><img src="icons/in-app-icon.png" alt="" /></div>
+      <h1>Watchlist</h1>
+    </button>
     <nav class="desktop-tabs">
       <button class="desktop-tab active" data-tab="home"      onclick="switchTab('home')">      <i class="ti ti-home"></i> Home</button>
       <button class="desktop-tab"        data-tab="search"    onclick="switchTab('search')">    <i class="ti ti-search"></i> Search</button>
@@ -143,6 +140,11 @@
     </nav>
     <div class="user-avatar" id="user-avatar" onclick="switchTab('settings')" title="Account">?</div>
   </header>
+
+  <!-- Pull-to-refresh reserved space — sits below the fixed header, grows as the user pulls -->
+  <div id="ptr-zone" aria-hidden="true">
+    <div id="ptr-indicator"><i class="ti ti-refresh"></i></div>
+  </div>
 
   <main>
 
@@ -202,6 +204,16 @@
     <!-- WATCHLIST -->
     <section id="tab-watchlist" class="tab-panel">
       <div class="stats-row" id="wl-stats"></div>
+
+      <div class="view-toggle-row">
+        <button class="view-toggle-btn" data-view="grid" onclick="setWatchlistView('grid')" aria-label="Grid view">
+          <i class="ti ti-layout-grid"></i>
+        </button>
+        <button class="view-toggle-btn" data-view="list" onclick="setWatchlistView('list')" aria-label="List view">
+          <i class="ti ti-list"></i>
+        </button>
+      </div>
+
       <div class="wl-filters">
         <select id="wl-st" onchange="renderWatchlist()">
           <option value="all">All statuses</option>
@@ -254,15 +266,54 @@
 
       <div class="settings-section">
         <h2><i class="ti ti-user"></i> Account</h2>
-        <div class="settings-row">
+
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Profile picture</p>
+        <div class="avatar-picker-grid" id="avatar-picker"></div>
+
+        <div class="settings-row" style="margin-top:18px">
           <label>Signed in as</label>
           <span class="settings-email" id="settings-email"></span>
         </div>
-        <div style="margin-top:14px">
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <button class="primary-btn" onclick="sendPasswordReset()">
+            <i class="ti ti-key"></i> Reset password
+          </button>
+          <p id="reset-password-status" style="font-size:13px;min-height:18px;color:var(--muted)"></p>
           <button class="danger-btn" onclick="handleSignOut()">
             <i class="ti ti-logout"></i> Sign out
           </button>
         </div>
+      </div>
+
+      <div class="settings-section">
+        <h2><i class="ti ti-palette"></i> Appearance</h2>
+
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Mode</p>
+        <div class="theme-mode-row">
+          <button class="theme-mode-btn" data-mode="dark" onclick="setThemeMode('dark')">
+            <i class="ti ti-moon"></i> Dark
+          </button>
+          <button class="theme-mode-btn" data-mode="light" onclick="setThemeMode('light')">
+            <i class="ti ti-sun"></i> Light
+          </button>
+        </div>
+
+        <p style="font-size:13px;color:var(--muted);margin:16px 0 10px">Accent colour</p>
+        <div class="theme-swatch-row">
+          <button class="theme-swatch" data-accent="purple" onclick="setThemeAccent('purple')" style="background:#6c63ff" aria-label="Purple"></button>
+          <button class="theme-swatch" data-accent="orange" onclick="setThemeAccent('orange')" style="background:#ce712e" aria-label="Orange"></button>
+          <button class="theme-swatch" data-accent="blue"   onclick="setThemeAccent('blue')"   style="background:#8adae0" aria-label="Light blue"></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2><i class="ti ti-map-pin"></i> Streaming Region</h2>
+        <p style="font-size:13px;color:var(--muted)">
+          Currently set to <strong style="color:var(--text)">United Kingdom (GB)</strong>.
+          To change region, open <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code>
+          and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
+          to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
+        </p>
       </div>
 
       <div class="settings-section">
@@ -281,16 +332,6 @@
             <i class="ti ti-device-floppy"></i> Update key
           </button>
         </div>
-      </div>
-
-      <div class="settings-section">
-        <h2><i class="ti ti-map-pin"></i> Streaming Region</h2>
-        <p style="font-size:13px;color:var(--muted)">
-          Currently set to <strong style="color:var(--text)">United Kingdom (GB)</strong>.
-          To change region, open <code style="font-size:12px;color:var(--accent)">js/tmdb.js</code>
-          and update <code style="font-size:12px;color:var(--accent)">const REGION</code>
-          to your ISO country code (e.g. <code style="font-size:12px;color:var(--accent)">'US'</code>, <code style="font-size:12px;color:var(--accent)">'AU'</code>, <code style="font-size:12px;color:var(--accent)">'CA'</code>).
-        </p>
       </div>
 
       <div class="settings-section">
@@ -315,6 +356,16 @@
         </div>
       </div>
 
+      <div class="settings-section danger-zone">
+        <h2><i class="ti ti-alert-triangle"></i> Danger Zone</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Permanently delete your watchlist, YouTube links, saved TMDB key, and profile data. This cannot be undone.
+        </p>
+        <button class="danger-btn" onclick="openDeleteAccountModal()">
+          <i class="ti ti-trash"></i> Delete account data
+        </button>
+      </div>
+
     </section>
 
   </main>
@@ -333,6 +384,38 @@
 <!-- Detail modal -->
 <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal" id="modal"></div>
+</div>
+
+<!-- Delete account confirmation modal -->
+<div class="modal-backdrop" id="delete-account-modal" role="dialog" aria-modal="true">
+  <div class="modal delete-modal">
+    <div class="delete-modal-body">
+      <div class="delete-modal-icon"><i class="ti ti-alert-triangle"></i></div>
+      <h2>Delete account data?</h2>
+      <p class="delete-modal-explain">
+        This will permanently erase, for this account:
+      </p>
+      <ul class="delete-modal-list">
+        <li><i class="ti ti-bookmark"></i> Your entire watchlist and any ratings you've given</li>
+        <li><i class="ti ti-brand-youtube"></i> All saved YouTube links</li>
+        <li><i class="ti ti-api"></i> Your saved TMDB API key</li>
+        <li><i class="ti ti-palette"></i> Your theme and profile picture preferences</li>
+      </ul>
+      <p class="delete-modal-explain">
+        This cannot be undone. Type <strong>DELETE</strong> below to confirm.
+      </p>
+      <input type="text" id="delete-confirm-input" placeholder="Type DELETE" autocomplete="off"
+             autocapitalize="off" oninput="onDeleteConfirmInput()" />
+      <div class="delete-modal-actions">
+        <button class="primary-btn" style="background:var(--surface2);color:var(--text)" onclick="closeDeleteAccountModal()">
+          Cancel
+        </button>
+        <button class="danger-btn" id="delete-confirm-btn" disabled onclick="confirmDeleteAccount()">
+          Delete everything
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast -->
