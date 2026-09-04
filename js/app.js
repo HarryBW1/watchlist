@@ -1,13 +1,13 @@
 'use strict';
 // ── State ──────────────────────────────────────────────────────────────────
 let currentUser    = null;
-let currentAvatarId = null;
 let watchlist      = [];
 let ytLinks        = [];
 let activeTab      = 'home';
 let searchDebounce = null;
 let currentModal   = null;
 let homeLoaded     = false;
+let discoveryLoaded = false;
 
 const STATUS_CONFIG = {
   'Want to watch': { cls: 's-want',     icon: 'ti-bookmark' },
@@ -31,9 +31,7 @@ function toast(msg, type = 'info') {
 }
 
 function updateBadge() {
-  // Finished items are tucked away from the default view, so they don't count
-  // toward the badge either — badge reflects what's visible under "All statuses"
-  const wlTotal = watchlist.filter(w => w.status !== 'Finished').length;
+  const wlTotal = watchlist.length;
   const ytTotal = ytLinks.length;
 
   document.querySelectorAll('.mob-badge, .dt-badge').forEach(el => {
@@ -214,7 +212,6 @@ async function handleUser(user) {
     watchlist = wl;
     ytLinks   = yt;
     updateBadge();
-    applyAvatar(profile?.avatar_id);
 
     if (profile?.tmdb_key) {
       // Returning user with key — go straight to app
@@ -277,6 +274,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tab));
   if (tab === 'home'      && !homeLoaded && TMDB.getKey()) loadHome();
+  if (tab === 'search'    && !discoveryLoaded && TMDB.getKey()) loadDiscovery();
   if (tab === 'watchlist') renderWatchlist();
   if (tab === 'youtube')   renderYT();
   if (tab === 'settings')  renderSettings();
@@ -297,7 +295,9 @@ async function loadHome() {
       TMDB.getPopularMovies(),
       TMDB.getPopularTV(),
     ]);
+    const featured = trending[0];
     container.innerHTML = `
+      ${featuredSection(featured)}
       ${homeSection('Trending this week',  trending.slice(0, 12))}
       ${homeSection('In cinemas now',       nowPlaying.slice(0, 10))}
       ${homeSection('Series on air',        onAir.slice(0, 10))}
@@ -311,6 +311,35 @@ async function loadHome() {
       <p>Couldn't load content.<br><button class="link-btn" onclick="loadHome()">Try again</button></p>
     </div>`;
   }
+}
+
+function featuredSection(item) {
+  if (!item) return '';
+  const t        = item.title || item.name || 'Untitled';
+  const year     = (item.release_date || item.first_air_date || '').slice(0, 4);
+  const backdrop = TMDB.backdropUrl(item.backdrop_path, 'w1280') || TMDB.posterUrl(item.poster_path, 'w780');
+  const rating   = item.vote_average ? item.vote_average.toFixed(1) : null;
+  const inWL     = isInWL(item.id);
+  const kind     = item.media_type === 'movie' ? 'Film' : 'Series';
+  const overview = item.overview ? esc(item.overview).slice(0, 140) + (item.overview.length > 140 ? '…' : '') : '';
+
+  return `<div class="home-section featured-section">
+    <div class="featured-card ${inWL ? 'in-watchlist' : ''}" onclick="openModal(${item.id},'${esc(item.media_type)}')" data-id="${item.id}">
+      <div class="featured-backdrop">
+        ${backdrop ? `<img src="${esc(backdrop)}" alt="${esc(t)}" loading="lazy">` : ''}
+        <div class="featured-grad"></div>
+        <span class="featured-badge"><i class="ti ti-sparkles"></i> Featured</span>
+        <div class="in-wl-overlay"><i class="ti ti-bookmark-filled"></i></div>
+      </div>
+      <div class="featured-info">
+        <h2 class="featured-title">${esc(t)}</h2>
+        <p class="featured-meta">
+          ${kind}${year ? ' · ' + esc(year) : ''}${rating ? ` · <i class="ti ti-star-filled"></i> ${esc(rating)}` : ''}
+        </p>
+        ${overview ? `<p class="featured-overview">${overview}</p>` : ''}
+      </div>
+    </div>
+  </div>`;
 }
 
 function homeSection(title, items) {
@@ -346,13 +375,31 @@ function onSearchInput() {
   clearTimeout(searchDebounce);
   const q = document.getElementById('s-input').value.trim();
   if (!q) { resetSearch(); return; }
+  document.getElementById('search-discovery').style.display = 'none';
   searchDebounce = setTimeout(() => doSearch(q), 400);
 }
 
 function resetSearch() {
   document.getElementById('search-hint').style.display = 'flex';
+  document.getElementById('search-discovery').style.display = discoveryLoaded ? 'block' : 'none';
   document.getElementById('search-grid').innerHTML = '';
   setSpinner(false);
+}
+
+async function loadDiscovery() {
+  if (!TMDB.getKey()) return;
+  const grid = document.getElementById('discovery-grid');
+  try {
+    const trending = await TMDB.getTrending('all', 'week');
+    renderCards(trending.slice(0, 10), 'discovery-grid');
+    discoveryLoaded = true;
+    // Only reveal it if the search box is still empty
+    if (!document.getElementById('s-input').value.trim()) {
+      document.getElementById('search-discovery').style.display = 'block';
+    }
+  } catch {
+    grid.innerHTML = ''; // fail quietly — discovery is a nice-to-have, not core functionality
+  }
 }
 
 function setSpinner(on) {
@@ -433,29 +480,11 @@ async function openModal(id, mediaType) {
     ]);
     currentModal = buildModalItem(details, mediaType, providers);
     renderModal(currentModal, providers);
-    syncWatchlistPoster(currentModal); // pick up any poster/backdrop change from TMDB
   } catch {
     modal.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
       <p>Couldn't load details.</p>
       <button onclick="closeModal()" class="primary-btn" style="margin-top:12px">Close</button></div>`;
   }
-}
-
-// If this title is already in the watchlist and TMDB's poster/backdrop has
-// changed since it was added, update the stored copy automatically.
-async function syncWatchlistPoster(fresh) {
-  const item = watchlist.find(w => w.tmdbId === fresh.tmdbId);
-  if (!item) return;
-  const posterChanged   = fresh.posterPath   && fresh.posterPath   !== item.posterPath;
-  const backdropChanged = fresh.backdropPath && fresh.backdropPath !== item.backdropPath;
-  if (!posterChanged && !backdropChanged) return;
-
-  item.posterPath   = fresh.posterPath;
-  item.backdropPath = fresh.backdropPath;
-  if (activeTab === 'watchlist') renderWatchlist();
-
-  try { await DB.upsertWatchlistItem(currentUser.id, item); }
-  catch { /* best-effort — will retry next time the item is opened */ }
 }
 
 function buildModalItem(d, mediaType, providers) {
@@ -527,10 +556,7 @@ function closeModal() {
 
 async function addToWL() {
   if (!currentModal || isInWL(currentModal.tmdbId)) return;
-  // Negative timestamp means new items naturally sort before older ones
-  // Small negative counter so new items sort first — avoids integer overflow
-  // that a raw Date.now() timestamp would cause in a standard integer column
-  const item = { ...currentModal, addedAt: Date.now(), sortOrder: -(watchlist.length + 1) };
+  const item = { ...currentModal, addedAt: Date.now() };
   watchlist.unshift(item);
   updateBadge();
   document.querySelectorAll(`[data-id="${item.tmdbId}"]`).forEach(c => c.classList.add('in-watchlist'));
@@ -605,12 +631,10 @@ function renderWatchlist() {
   });
   if (currentPf !== 'all' && pfSelect.value !== currentPf) pfSelect.value = 'all';
 
-  const finished = watchlist.filter(w => w.status === 'Finished').length;
+  const total    = watchlist.length;
   const watching = watchlist.filter(w => w.status === 'Watching').length;
+  const finished = watchlist.filter(w => w.status === 'Finished').length;
   const want     = watchlist.filter(w => w.status === 'Want to watch').length;
-  // "Total" reflects what's visible under All statuses — Finished items are
-  // tucked away and only surface when the Finished filter is explicitly chosen
-  const total    = watchlist.length - finished;
   document.getElementById('wl-stats').innerHTML = `
     <div class="stat"><span class="stat-n">${total}</span><span class="stat-l">Total</span></div>
     <div class="stat"><span class="stat-n">${want}</span><span class="stat-l">To watch</span></div>
@@ -618,19 +642,11 @@ function renderWatchlist() {
     <div class="stat"><span class="stat-n">${finished}</span><span class="stat-l">Finished</span></div>`;
 
   const filtered = watchlist.filter(w => {
-    // Finished items are hidden under "All statuses" — only the Finished filter shows them
-    if (stFilter === 'all' && w.status === 'Finished') return false;
     const matchStatus   = stFilter   === 'all' || w.status    === stFilter;
     const matchType     = typeFilter === 'all' || w.mediaType === typeFilter;
     const matchPlatform = pfFilter   === 'all' || getProviderNames(w).includes(pfFilter);
     return matchStatus && matchType && matchPlatform;
   });
-
-  const viewMode = localStorage.getItem('wl_view_mode') || 'grid';
-  grid.classList.toggle('view-grid', viewMode === 'grid');
-  grid.classList.toggle('view-list', viewMode === 'list');
-  document.querySelectorAll('.view-toggle-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.view === viewMode));
 
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
@@ -640,47 +656,10 @@ function renderWatchlist() {
     return;
   }
 
-  // Reordering is only meaningful with no filters active — otherwise a drag
-  // would silently reorder a subset in a way that doesn't reflect visually.
-  const reorderable = stFilter === 'all' && pfFilter === 'all' && typeFilter === 'all';
-
   grid.innerHTML = filtered.map(w => {
     const poster = TMDB.posterUrl(w.posterPath, 'w342');
     const kind   = w.mediaType === 'movie' ? 'Film' : 'Series';
-
-    const dragHandle = reorderable
-      ? `<div class="drag-handle" draggable="true" aria-label="Drag to reorder"><i class="ti ti-grip-vertical"></i></div>`
-      : '';
-
-    if (viewMode === 'list') {
-      const backdrop = TMDB.backdropUrl(w.backdropPath, 'w780');
-      return `<div class="wl-card list-card" data-tmdb="${w.tmdbId}">
-        <div class="wl-card-hero" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
-          ${backdrop ? `<img src="${esc(backdrop)}" alt="" loading="lazy">` : ''}
-          <div class="wl-card-hero-grad"></div>
-        </div>
-        <button class="wl-remove-btn" onclick="event.stopPropagation();removeFromWL(${w.tmdbId})"><i class="ti ti-x"></i></button>
-        <div class="list-body">
-          ${poster
-            ? `<img class="list-poster" src="${esc(poster)}" alt="${esc(w.title)}" loading="lazy" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">`
-            : `<div class="list-poster-ph"><i class="ti ti-device-tv"></i></div>`}
-          <div class="list-info">
-            <h3 class="wl-card-title">${esc(w.title)}</h3>
-            <p class="wl-card-meta">${w.year || ''}${w.year ? ' · ' : ''}${kind}</p>
-            ${statusBadge(w.status)}
-            <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
-              ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
-            </select>
-            ${stFilter === 'Finished' ? renderStars(w.tmdbId, w.userRating) : ''}
-          </div>
-          ${dragHandle}
-        </div>
-      </div>`;
-    }
-
-    // Grid view (default)
     return `<div class="wl-card" data-tmdb="${w.tmdbId}">
-      ${dragHandle}
       <div class="wl-card-poster" onclick="openModal(${w.tmdbId},'${esc(w.mediaType)}')">
         ${poster ? `<img src="${esc(poster)}" alt="${esc(w.title)}" loading="lazy">` : `<div class="wl-poster-ph"><i class="ti ti-device-tv"></i></div>`}
         <button class="wl-remove-btn" onclick="event.stopPropagation();removeFromWL(${w.tmdbId})"><i class="ti ti-x"></i></button>
@@ -692,301 +671,28 @@ function renderWatchlist() {
         <select class="status-sel" onchange="setStatus(${w.tmdbId},this.value)">
           ${Object.keys(STATUS_CONFIG).map(s => `<option value="${esc(s)}" ${w.status===s?'selected':''}>${esc(s)}</option>`).join('')}
         </select>
-        ${stFilter === 'Finished' ? renderStars(w.tmdbId, w.userRating) : ''}
       </div>
     </div>`;
   }).join('');
-
-  if (reorderable) attachDragReorder(grid);
-}
-
-function setWatchlistView(mode) {
-  localStorage.setItem('wl_view_mode', mode);
-  renderWatchlist();
-}
-
-// ── Drag-to-reorder (Pointer Events — works on touch/iOS and mouse/desktop) ──
-// Native HTML5 drag-and-drop does not work on iOS touch, so this uses
-// pointerdown/pointermove/pointerup on the drag handle instead, manually
-// tracking position and swapping list order as the card is dragged.
-let dragState = null;
-
-function attachDragReorder(container) {
-  container.querySelectorAll('.drag-handle').forEach(handle => {
-    handle.addEventListener('pointerdown', onDragHandleDown);
-  });
-}
-
-function onDragHandleDown(e) {
-  e.preventDefault();
-  const card = e.currentTarget.closest('.wl-card');
-  if (!card) return;
-
-  const container = card.parentElement;
-  const cards = [...container.querySelectorAll('.wl-card')];
-
-  dragState = {
-    card,
-    container,
-    cards,
-    startY: e.clientY,
-    startX: e.clientX,
-    lastClientX: e.clientX,
-    lastClientY: e.clientY,
-    startScrollY: window.scrollY,
-    cardStartRect: card.getBoundingClientRect(),
-    pointerId: e.pointerId,
-  };
-
-  card.classList.add('dragging');
-  card.style.position = 'relative';
-  card.style.zIndex = '50';
-  card.style.pointerEvents = 'none'; // let drop-target detection see through to cards beneath
-
-  e.currentTarget.setPointerCapture(e.pointerId);
-  document.addEventListener('pointermove', onDragMove);
-  document.addEventListener('pointerup', onDragUp);
-  document.addEventListener('pointercancel', onDragUp);
-}
-
-function onDragMove(e) {
-  if (!dragState) return;
-  dragState.lastClientX = e.clientX;
-  dragState.lastClientY = e.clientY;
-  const scrollDelta = window.scrollY - dragState.startScrollY;
-  const dy = (e.clientY - dragState.startY) + scrollDelta;
-  const dx = e.clientX - dragState.startX;
-  dragState.card.style.transform = `translate(${dx}px, ${dy}px)`;
-
-  // Find which other card the pointer is currently over
-  const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.wl-card');
-  dragState.cards.forEach(c => c.classList.remove('drag-over'));
-  if (target && target !== dragState.card && dragState.cards.includes(target)) {
-    target.classList.add('drag-over');
-    dragState.hoverTarget = target;
-  } else {
-    dragState.hoverTarget = null;
-  }
-
-  updateAutoScroll(e.clientY);
-}
-
-// ── Auto-scroll while dragging near the top/bottom of the screen ───────────
-const AUTOSCROLL_EDGE  = 130; // px from viewport edge that triggers scrolling
-const AUTOSCROLL_SPEED = 22;  // px per frame at full deflection
-let autoScrollDir  = 0;       // -1 up, 0 none, 1 down
-let autoScrollFrame = null;
-
-function updateAutoScroll(clientY) {
-  const vh = window.innerHeight;
-  // Bottom nav overlays the lower portion of the viewport — the content
-  // visually "ends" above it, so measure the bottom trigger zone from there
-  // rather than the true screen edge (which is what made this feel unresponsive).
-  const nav = document.querySelector('.bottom-nav');
-  const navHeight = (nav && getComputedStyle(nav).display !== 'none') ? nav.getBoundingClientRect().height : 0;
-  const effectiveBottom = vh - navHeight;
-
-  if (clientY < AUTOSCROLL_EDGE) {
-    autoScrollDir = -Math.min(1, 1 - clientY / AUTOSCROLL_EDGE);
-  } else if (clientY > effectiveBottom - AUTOSCROLL_EDGE) {
-    autoScrollDir = Math.min(1, (clientY - (effectiveBottom - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE);
-  } else {
-    autoScrollDir = 0;
-  }
-
-  if (autoScrollDir !== 0 && !autoScrollFrame) {
-    autoScrollFrame = requestAnimationFrame(autoScrollStep);
-  }
-}
-
-function autoScrollStep() {
-  autoScrollFrame = null;
-  if (!dragState || autoScrollDir === 0) return;
-
-  window.scrollBy(0, autoScrollDir * AUTOSCROLL_SPEED);
-
-  // Update the card's on-screen position to compensate for the scroll that just happened
-  const scrollDelta = window.scrollY - dragState.startScrollY;
-  const dy = (dragState.lastClientY - dragState.startY) + scrollDelta;
-  const dx = dragState.lastClientX - dragState.startX;
-  dragState.card.style.transform = `translate(${dx}px, ${dy}px)`;
-
-  // Keep the dragged card visually tracking the pointer as the page scrolls
-  // beneath it — re-run the hover-target detection at the same screen position
-  const rect = dragState.card.getBoundingClientRect();
-  const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
-    ?.closest('.wl-card');
-  if (target && target !== dragState.card && dragState.cards.includes(target)) {
-    dragState.cards.forEach(c => c.classList.remove('drag-over'));
-    target.classList.add('drag-over');
-    dragState.hoverTarget = target;
-  }
-
-  autoScrollFrame = requestAnimationFrame(autoScrollStep);
-}
-
-function stopAutoScroll() {
-  autoScrollDir = 0;
-  if (autoScrollFrame) { cancelAnimationFrame(autoScrollFrame); autoScrollFrame = null; }
-}
-
-function onDragUp(e) {
-  if (!dragState) return;
-  stopAutoScroll();
-  const { card, hoverTarget, cards } = dragState;
-
-  card.classList.remove('dragging');
-  card.style.position = '';
-  card.style.zIndex = '';
-  card.style.pointerEvents = '';
-  card.style.transform = '';
-  cards.forEach(c => c.classList.remove('drag-over'));
-
-  document.removeEventListener('pointermove', onDragMove);
-  document.removeEventListener('pointerup', onDragUp);
-  document.removeEventListener('pointercancel', onDragUp);
-
-  if (hoverTarget) {
-    const srcId  = parseInt(card.dataset.tmdb, 10);
-    const destId = parseInt(hoverTarget.dataset.tmdb, 10);
-    reorderWatchlist(srcId, destId);
-  }
-
-  dragState = null;
-}
-
-function reorderWatchlist(srcId, destId) {
-  const srcIdx  = watchlist.findIndex(w => w.tmdbId === srcId);
-  const destIdx = watchlist.findIndex(w => w.tmdbId === destId);
-  if (srcIdx === -1 || destIdx === -1) return;
-
-  const [moved] = watchlist.splice(srcIdx, 1);
-  watchlist.splice(destIdx, 0, moved);
-
-  renderWatchlist();
-  saveWatchlistOrder();
-}
-
-async function saveWatchlistOrder() {
-  // Persist the new order by writing a sortOrder index to each item.
-  // Runs in the background — UI has already updated optimistically.
-  try {
-    await Promise.all(
-      watchlist.map((w, i) => DB.updateWatchlistOrder(currentUser.id, w.tmdbId, i))
-    );
-  } catch (e) {
-    toast('Could not save new order: ' + e.message, 'warn');
-  }
-}
-
-// ── Star rating (Finished filter only) — supports half-star increments ─────
-function renderStars(tmdbId, rating) {
-  rating = rating || 0;
-  let stars = '';
-  for (let i = 1; i <= 5; i++) {
-    let fill = 0;
-    if (rating >= i) fill = 100;
-    else if (rating >= i - 0.5) fill = 50;
-    stars += `<div class="star-slot">
-      <div class="star-bg"><i class="ti ti-star-filled"></i></div>
-      <div class="star-fg-mask" style="--fill:${fill}%"><div class="star-fg-icon"><i class="ti ti-star-filled"></i></div></div>
-    </div>`;
-  }
-  const label = rating ? `${rating.toFixed(1).replace('.0','')} / 5` : 'Not rated';
-  return `<div class="star-rating-row">
-    <div class="star-rating" data-tmdb="${tmdbId}">${stars}</div>
-    <span class="star-rating-label">${label}</span>
-    ${rating ? `<button class="star-clear" onclick="event.stopPropagation();setUserRating(${tmdbId},0)" aria-label="Clear rating"><i class="ti ti-x"></i></button>` : ''}
-  </div>`;
-}
-
-async function setUserRating(tmdbId, rating) {
-  const item = watchlist.find(w => w.tmdbId === tmdbId);
-  if (!item) return;
-  item.userRating = rating || null;
-  setTimeout(renderWatchlist, 0);
-  try { await DB.updateWatchlistRating(currentUser.id, tmdbId, item.userRating); }
-  catch (e) { toast('Sync error: ' + e.message, 'warn'); }
-}
-
-// ── Star rating: press-and-drag across the row (tap also works, as a zero-distance drag) ──
-let starDrag = null;
-
-function computeRatingFromX(clientX, rect) {
-  const relX = clientX - rect.left;
-  let raw = (relX / rect.width) * 5;
-  raw = Math.round(raw * 2) / 2; // snap to nearest 0.5
-  return Math.max(0, Math.min(5, raw));
-}
-
-function paintStarRating(container, rating) {
-  container.querySelectorAll('.star-slot').forEach((slot, idx) => {
-    const i = idx + 1;
-    let fill = 0;
-    if (rating >= i) fill = 100;
-    else if (rating >= i - 0.5) fill = 50;
-    const mask = slot.querySelector('.star-fg-mask');
-    if (mask) mask.style.setProperty('--fill', fill + '%');
-  });
-  const row = container.closest('.star-rating-row');
-  const label = row?.querySelector('.star-rating-label');
-  if (label) label.textContent = rating ? `${rating.toFixed(1).replace('.0','')} / 5` : 'Not rated';
-}
-
-function initStarDrag() {
-  document.addEventListener('pointerdown', e => {
-    const container = e.target.closest('.star-rating');
-    if (!container) return;
-    e.preventDefault();
-    const rect = container.getBoundingClientRect();
-    starDrag = {
-      tmdbId: parseInt(container.dataset.tmdb, 10),
-      container, rect,
-      rating: computeRatingFromX(e.clientX, rect),
-    };
-    paintStarRating(container, starDrag.rating);
-    try { container.setPointerCapture(e.pointerId); } catch {}
-  });
-
-  document.addEventListener('pointermove', e => {
-    if (!starDrag) return;
-    starDrag.rating = computeRatingFromX(e.clientX, starDrag.rect);
-    paintStarRating(starDrag.container, starDrag.rating);
-  });
-
-  const commit = () => {
-    if (!starDrag) return;
-    setUserRating(starDrag.tmdbId, starDrag.rating);
-    starDrag = null;
-  };
-  document.addEventListener('pointerup', commit);
-  document.addEventListener('pointercancel', () => { starDrag = null; });
 }
 
 async function setStatus(tmdbId, status) {
   const item = watchlist.find(w => w.tmdbId === tmdbId);
   if (!item) return;
-  const prevStatus = item.status;
   item.status = status;
 
   const activeFilter = document.getElementById('wl-st').value;
-  // Finished items are hidden under "All statuses", so switching a status
-  // to or from Finished changes what's visible — always re-render for that case.
-  const visibilityChanged = status === 'Finished' || prevStatus === 'Finished';
-
-  if (activeFilter !== 'all' || visibilityChanged) {
-    // Re-render so the item moves in/out of view immediately
+  if (activeFilter !== 'all') {
+    // A status filter is active — re-render so the item moves out of view immediately
     setTimeout(renderWatchlist, 0);
   } else {
-    // No filter, no visibility change — just update the badge in-place
+    // No filter — just update the badge in-place, no DOM teardown needed
     const card = document.querySelector(`.wl-card[data-tmdb="${tmdbId}"]`);
     if (card) {
       const badge = card.querySelector('.status-badge');
       if (badge) badge.outerHTML = statusBadge(status);
     }
   }
-
-  updateBadge(); // Total/nav badge exclude Finished, so this needs to reflect the change too
 
   try { await DB.updateWatchlistStatus(currentUser.id, tmdbId, status); }
   catch (e) { toast('Sync error: ' + e.message, 'warn'); }
@@ -1179,153 +885,13 @@ async function importData(event) {
   }
 }
 
-// ── Theme (mode + accent) ───────────────────────────────────────────────────
-function setThemeMode(mode) {
-  document.documentElement.setAttribute('data-theme', mode);
-  localStorage.setItem('wl_theme_mode', mode);
-  syncThemeControls();
-}
-
-function setThemeAccent(accent) {
-  if (accent === 'purple') {
-    document.documentElement.removeAttribute('data-accent'); // purple is the default, no override needed
-  } else {
-    document.documentElement.setAttribute('data-accent', accent);
-  }
-  localStorage.setItem('wl_theme_accent', accent);
-  syncThemeControls();
-}
-
-function syncThemeControls() {
-  const mode   = localStorage.getItem('wl_theme_mode')   || 'dark';
-  const accent = localStorage.getItem('wl_theme_accent') || 'purple';
-  document.querySelectorAll('.theme-mode-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.mode === mode));
-  document.querySelectorAll('.theme-swatch').forEach(b =>
-    b.classList.toggle('active', b.dataset.accent === accent));
-}
-
-function applyStoredTheme() {
-  const mode   = localStorage.getItem('wl_theme_mode')   || 'dark';
-  const accent = localStorage.getItem('wl_theme_accent') || 'purple';
-  document.documentElement.setAttribute('data-theme', mode);
-  if (accent !== 'purple') document.documentElement.setAttribute('data-accent', accent);
-}
-
-// ── Password reset ───────────────────────────────────────────────────────────
-async function sendPasswordReset() {
-  const statusEl = document.getElementById('reset-password-status');
-  if (!currentUser) return;
-  statusEl.style.color = 'var(--muted)';
-  statusEl.textContent = 'Sending…';
-  try {
-    await Auth.sendPasswordReset(currentUser.email);
-    statusEl.style.color = 'var(--success)';
-    statusEl.textContent = `Reset email sent to ${currentUser.email}. Check your inbox.`;
-  } catch (e) {
-    statusEl.style.color = 'var(--danger)';
-    statusEl.textContent = e.message || 'Failed to send reset email.';
-  }
-}
-
-// ── Profile picture ──────────────────────────────────────────────────────────
-// A set of built-in colourful icon avatars — similar in spirit to the preset
-// profile pictures on Netflix/Disney+/Prime Video, without using any
-// copyrighted platform artwork.
-const AVATAR_OPTIONS = [
-  { id: 'a1',  icon: 'ti-mood-smile', bg: '#e50914' },
-  { id: 'a2',  icon: 'ti-ghost-2',    bg: '#6c63ff' },
-  { id: 'a3',  icon: 'ti-robot',      bg: '#00a8e0' },
-  { id: 'a4',  icon: 'ti-cat',        bg: '#ce712e' },
-  { id: 'a5',  icon: 'ti-alien',      bg: '#22c55e' },
-  { id: 'a6',  icon: 'ti-crown',      bg: '#eab308' },
-  { id: 'a7',  icon: 'ti-skull',      bg: '#71717a' },
-  { id: 'a8',  icon: 'ti-heart',      bg: '#ec4899' },
-  { id: 'a9',  icon: 'ti-bolt',       bg: '#3b82f6' },
-  { id: 'a10', icon: 'ti-flame',      bg: '#f97316' },
-  { id: 'a11', icon: 'ti-star-filled',bg: '#8adae0' },
-  { id: 'a12', icon: 'ti-moon-stars', bg: '#5822b4' },
-];
-
-function applyAvatar(avatarId) {
-  currentAvatarId = avatarId || null;
-  const opt = AVATAR_OPTIONS.find(a => a.id === avatarId);
-  document.querySelectorAll('#user-avatar').forEach(el => {
-    if (opt) {
-      el.style.background = opt.bg;
-      el.innerHTML = `<i class="ti ${opt.icon}"></i>`;
-    } else {
-      el.style.background = '';
-      el.textContent = currentUser ? currentUser.email[0].toUpperCase() : '?';
-    }
-  });
-}
-
-function renderAvatarPicker() {
-  const grid = document.getElementById('avatar-picker');
-  if (!grid) return;
-  grid.innerHTML = AVATAR_OPTIONS.map(a => `
-    <button class="avatar-option ${currentAvatarId === a.id ? 'selected' : ''}"
-            style="background:${a.bg}" onclick="setAvatar('${a.id}')" aria-label="Choose avatar">
-      <i class="ti ${a.icon}"></i>
-    </button>`).join('') +
-    `<button class="avatar-option avatar-option-clear ${!currentAvatarId ? 'selected' : ''}"
-             onclick="setAvatar(null)" aria-label="Use initials instead">
-      <i class="ti ti-letter-case"></i>
-    </button>`;
-}
-
-async function setAvatar(avatarId) {
-  applyAvatar(avatarId);
-  renderAvatarPicker();
-  try { await DB.saveAvatar(currentUser.id, avatarId); }
-  catch (e) { toast('Could not save avatar: ' + e.message, 'warn'); }
-}
-
-// ── Delete account ───────────────────────────────────────────────────────────
-function openDeleteAccountModal() {
-  document.getElementById('delete-account-modal').classList.add('open');
-  document.getElementById('delete-confirm-input').value = '';
-  document.getElementById('delete-confirm-btn').disabled = true;
-}
-
-function closeDeleteAccountModal() {
-  document.getElementById('delete-account-modal').classList.remove('open');
-}
-
-function onDeleteConfirmInput() {
-  const val = document.getElementById('delete-confirm-input').value.trim();
-  document.getElementById('delete-confirm-btn').disabled = (val !== 'DELETE');
-}
-
-async function confirmDeleteAccount() {
-  const btn = document.getElementById('delete-confirm-btn');
-  btn.disabled = true;
-  btn.textContent = 'Deleting…';
-  try {
-    await DB.deleteAllUserData(currentUser.id);
-    toast('Your data has been deleted', 'success');
-    closeDeleteAccountModal();
-    await handleSignOut();
-  } catch (e) {
-    toast('Delete failed: ' + e.message, 'warn');
-    btn.disabled = false;
-    btn.textContent = 'Delete everything';
-  }
-}
-
 function renderSettings() {
   const el = document.getElementById('settings-email');
   if (el && currentUser) el.textContent = currentUser.email;
-  syncThemeControls();
-  renderAvatarPicker();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  applyStoredTheme(); // apply immediately to avoid a flash of the wrong theme
-  initStarDrag();
-
   // ── Guard: Supabase CDN must have loaded ───────────────────────────────
   if (typeof window.supabase === 'undefined') {
     showScreen('error-screen');
@@ -1358,17 +924,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('onboarding-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitOnboardingKey(); });
   document.getElementById('yt-url')           .addEventListener('keydown', e => { if (e.key === 'Enter') addYT(); });
   document.getElementById('yt-title')         .addEventListener('keydown', e => { if (e.key === 'Enter') addYT(); });
-  document.getElementById('delete-confirm-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !document.getElementById('delete-confirm-btn').disabled) confirmDeleteAccount();
-  });
   document.getElementById('s-input')          .addEventListener('keydown', e => {
     if (e.key === 'Escape') { document.getElementById('s-input').value = ''; resetSearch(); }
   });
   document.getElementById('modal-backdrop').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-backdrop')) closeModal();
-  });
-  document.getElementById('delete-account-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('delete-account-modal')) closeDeleteAccountModal();
   });
 
   // Auth state listener fires on login, logout, token refresh
@@ -1391,21 +951,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 8000);
 
   // ── Pull-to-refresh ──────────────────────────────────────────────────────
-  // Grows #ptr-zone's height as the user pulls, revealing the spinner in its
-  // own reserved space below the (now-fixed) header — rather than floating
-  // an indicator over the content. Only our own threshold triggers a refresh;
-  // ordinary elastic overscroll bounce alone never does.
   let ptrStartY    = 0;
   let ptrTriggered = false;
-  const PTR_THRESHOLD  = 70;  // px of pull needed to trigger a refresh
-  const PTR_MAX_HEIGHT = 56;  // px — cap on how tall the reveal zone grows
+  const PTR_THRESHOLD = 80; // px of pull needed to trigger
 
-  const ptrZone = document.getElementById('ptr-zone');
-  const ptrEl   = document.getElementById('ptr-indicator');
+  const ptrEl = document.getElementById('ptr-indicator');
 
   document.addEventListener('touchstart', e => {
-    // Never start pull-to-refresh while a card drag is in progress
-    if (dragState) { ptrStartY = 0; return; }
     // Only start tracking if already scrolled to the very top
     if (window.scrollY === 0) ptrStartY = e.touches[0].clientY;
     else ptrStartY = 0;
@@ -1413,13 +965,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
-    if (dragState) { ptrStartY = 0; ptrZone.style.height = '0px'; return; }
     if (!ptrStartY) return;
     const pullDist = e.touches[0].clientY - ptrStartY;
     if (pullDist <= 0) return;
 
-    const height = Math.min(pullDist * 0.5, PTR_MAX_HEIGHT);
-    ptrZone.style.height = `${height}px`;
+    const clamped = Math.min(pullDist, PTR_THRESHOLD * 1.5);
+    const progress = Math.min(pullDist / PTR_THRESHOLD, 1);
+
+    // Show and move the indicator down as user pulls
+    ptrEl.style.transform = `translateX(-50%) translateY(${clamped * 0.5}px)`;
+    ptrEl.style.opacity   = String(progress);
+    ptrEl.style.display   = 'flex';
 
     // Spin once threshold is reached
     ptrEl.classList.toggle('ptr-ready', pullDist >= PTR_THRESHOLD);
@@ -1427,35 +983,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.addEventListener('touchend', async () => {
-    if (dragState) { ptrStartY = 0; return; }
     if (!ptrStartY) return;
     ptrStartY = 0;
 
     if (ptrTriggered) {
-      // Settle at a fixed reveal height and spin while refreshing
-      ptrZone.style.height = `${PTR_MAX_HEIGHT}px`;
+      // Snap indicator to settled position and spin while refreshing
+      ptrEl.style.transform = 'translateX(-50%) translateY(20px)';
       ptrEl.classList.add('ptr-spinning');
       await doRefresh();
     }
 
-    // Collapse the reveal zone back to nothing
-    ptrZone.style.height = '0px';
+    // Hide indicator
+    ptrEl.style.opacity   = '0';
+    ptrEl.style.transform = 'translateX(-50%) translateY(-40px)';
     setTimeout(() => {
+      ptrEl.style.display = 'none';
       ptrEl.classList.remove('ptr-ready', 'ptr-spinning');
-    }, 250);
+    }, 300);
 
     ptrTriggered = false;
-  }, { passive: true });
-
-  // Dismiss the on-screen keyboard only on an actual manual scroll gesture —
-  // not the automatic scroll iOS performs to reveal a newly-focused input
-  // above the keyboard (which also fires a native 'scroll' event and was
-  // closing the keyboard immediately after opening it).
-  document.addEventListener('touchmove', e => {
-    const ae = document.activeElement;
-    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName) && e.target !== ae) {
-      ae.blur();
-    }
   }, { passive: true });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -1475,12 +1021,6 @@ window.closeModal           = closeModal;
 window.addToWL              = addToWL;
 window.removeFromWL         = removeFromWL;
 window.setStatus            = setStatus;
-window.setUserRating        = setUserRating;
-window.setAvatar             = setAvatar;
-window.openDeleteAccountModal   = openDeleteAccountModal;
-window.closeDeleteAccountModal  = closeDeleteAccountModal;
-window.onDeleteConfirmInput     = onDeleteConfirmInput;
-window.confirmDeleteAccount     = confirmDeleteAccount;
 window.renderWatchlist      = renderWatchlist;
 window.addYT                = addYT;
 window.removeYT             = removeYT;
